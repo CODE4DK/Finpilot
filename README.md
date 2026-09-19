@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 2 — database schema with Row Level Security.
+> **Status:** Phase 3 — authentication, onboarding and app lock.
 
 ## Stack
 
@@ -56,19 +56,9 @@ Install the resulting build, then start the dev server:
 npm start
 ```
 
-### Quick preview in Expo Go
-
-While the app only uses native modules that Expo Go already ships, you can
-preview it without building anything:
-
-```bash
-npm run start:go        # same Wi-Fi as your laptop
-npm run start:tunnel    # different networks
-```
-
-**This is a preview, not the workflow.** PowerSync arrives in Phase 3 and is a
-real native module, so from then on Expo Go cannot load the app and a
-development build is required.
+> **Expo Go no longer works.** Phase 3 added secure storage, local
+> authentication and Apple sign-in, none of which Expo Go ships. Use a
+> development build.
 
 If you have the native toolchain locally you can skip EAS and build directly:
 
@@ -82,8 +72,6 @@ npm run ios       # expo run:ios (macOS only)
 | Script                 | What it does                      |
 | ---------------------- | --------------------------------- |
 | `npm start`            | Metro bundler for the dev client  |
-| `npm run start:go`     | Metro in Expo Go mode (preview)   |
-| `npm run start:tunnel` | Expo Go over a tunnel             |
 | `npm run android`      | Build + run the Android dev build |
 | `npm run ios`          | Build + run the iOS dev build     |
 | `npm run lint`         | ESLint                            |
@@ -114,6 +102,13 @@ src/utils/            Pure helpers (money, ids, dates)
 supabase/             SQL migrations and Edge Functions
 docs/                 Changelog and design notes
 ```
+
+## Authentication
+
+Email OTP, Google and Apple sign-in, with an optional biometric/PIN app lock.
+Every console step — Supabase settings, redirect URLs, Google's three OAuth
+clients, Apple's App ID and key — is in
+[docs/AUTH_SETUP.md](./docs/AUTH_SETUP.md).
 
 ## Database
 

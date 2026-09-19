@@ -10,7 +10,8 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.finpilot.app"
+      "bundleIdentifier": "com.finpilot.app",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.finpilot.app",
@@ -25,7 +26,19 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-router", "expo-dev-client"],
+    "plugins": [
+      "expo-router",
+      "expo-dev-client",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow FinPilot to unlock with Face ID."
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }

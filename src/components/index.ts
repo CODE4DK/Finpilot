@@ -7,6 +7,8 @@ export * from './category-icon';
 export * from './chip';
 export * from './empty-state';
 export * from './list-item';
+export * from './otp-input';
+export * from './pin-pad';
 export * from './progress-bar';
 export * from './progress-ring';
 export * from './screen';

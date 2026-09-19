@@ -3,6 +3,72 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 3] - 2026-09-19 - Authentication, onboarding and app lock
+
+### Added
+
+- **Supabase client** (`src/lib/supabase.ts`) built as a factory with a lazily
+  memoised singleton, PKCE flow, and auto-refresh tied to foreground/background
+  so the timer is not left running - or stopped - by the OS.
+- **Chunking secure storage** (`src/lib/secure-store-adapter.ts`): SecureStore
+  rejects values over 2048 bytes and a session with a fat JWT exceeds that, so
+  large values are split across numbered keys and stitched back on read, with
+  orphan cleanup when a value shrinks and a null (not corrupt) read when a
+  slice is missing.
+- **Auth screens**: Welcome (email / Google / Apple), Email, and Verify with a
+  6-box OTP field backed by one hidden input (so the OS autofills the code and
+  screen readers get one labelled control) and a 30-second resend timer.
+- **Google and Apple sign-in** (`src/features/auth/oauth.ts`) via native
+  id_token exchange - no browser round trip - with a hashed nonce.
+- **Auth store and route guard**: `AuthGate` restores the session, loads the
+  profile, runs the lock lifecycle and redirects from the pure
+  `resolveRedirect`. Order is lock → onboarding → app; a null profile means
+  "unknown" and holds position rather than re-running onboarding.
+- **Onboarding wizard** driven by `profiles.onboarding_completed`: name and
+  currency, first account with an opening balance in paise, then an optional
+  app-lock setup, which writes the account and profile in one step.
+- **App lock**: biometrics via expo-local-authentication with a 4-digit PIN
+  fallback. The PIN is stored as a salted, 2000-round SHA-256 digest in the
+  keychain/keystore (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`), with a five-attempt
+  lockout that falls back to signing in again. Locks on cold start and after
+  one minute in the background.
+- **App-switcher privacy**: a `PrivacyCover` drawn whenever AppState is not
+  `active` (iOS snapshots the last frame) plus `FLAG_SECURE` via
+  expo-screen-capture (Android renders recents live).
+- **Friendly error handling** (`src/features/auth/errors.ts`): wrong OTP,
+  expired OTP, rate limiting, bad email, network failure, cancelled OAuth and
+  unavailable provider each map to actionable copy; a cancelled sheet is
+  silent.
+- **Security settings screen**: app-lock toggle, biometrics toggle, change PIN;
+  and sign-out, which clears the session, the PIN, the lock settings and every
+  in-memory store even if the network call fails.
+- **`docs/AUTH_SETUP.md`**: every console step for Supabase (including the
+  Magic Link template change that makes the email carry a code rather than a
+  link), redirect URLs, the three Google OAuth clients, Apple's App ID /
+  Services ID / key, plus a verification table and a troubleshooting section.
+- **Tests** (+146, 434 total): the secure-store adapter, auth store, pure route
+  guard, PIN hashing and attempt limits, lock policy, error classification,
+  email/OTP validation, the resend timer, and router tests covering signed-out,
+  onboarding, locked and signed-in states plus the OTP failure paths.
+
+### Changed
+
+- Native mocks for secure store, local authentication, screen capture, web
+  browser and Apple authentication moved into `jest.setup.ts`, with a fake
+  Supabase client in `src/test-utils/supabase-mock.ts`.
+- The `(auth)` group replaced its Phase 1 placeholders (sign-in, sign-up,
+  forgot-password) with the real welcome / email / verify flow.
+- `app.json` gained the secure-store, web-browser, apple-authentication and
+  local-authentication plugins, and `usesAppleSignIn`.
+
+### Notes
+
+- These native modules are not in Expo Go, so the preview scripts added last
+  phase no longer run this app; a development build is required from here on.
+- `.env.example` gained the three Google client IDs. They are public
+  identifiers, not secrets; leaving one blank simply hides the Google button on
+  that platform.
+
 ## [Phase 2] - 2026-09-19 - Database schema with RLS
 
 ### Added

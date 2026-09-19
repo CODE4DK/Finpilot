@@ -2,19 +2,19 @@ import { Stack } from 'expo-router';
 
 import { useTheme } from '@/theme';
 
-export default function AuthLayout() {
+export default function LockLayout() {
   const theme = useTheme();
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
+        // There is no going around the lock screen.
+        gestureEnabled: false,
         contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
-      <Stack.Screen name="welcome" />
-      <Stack.Screen name="email" />
-      <Stack.Screen name="verify" />
+      <Stack.Screen name="unlock" />
     </Stack>
   );
 }

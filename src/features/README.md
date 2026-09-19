@@ -1,8 +1,8 @@
 # Features
 
-One folder per domain feature (`accounts/`, `transactions/`, `budgets/`,
-`insights/`, `auth/`). Each feature owns its business logic and keeps screen
-files thin:
+One folder per domain feature. Today: `auth/`, `app-lock/`, `onboarding/`;
+later `accounts/`, `transactions/`, `budgets/`, `insights/`. Each feature owns
+its business logic and keeps screen files thin:
 
 ```
 src/features/transactions/

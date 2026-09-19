@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/components';
+import { AuthGate } from '@/features/auth/auth-gate';
 import { selectThemePreference, useSettingsStore } from '@/stores/settings-store';
 import { ThemeProvider, useTheme } from '@/theme';
 
@@ -23,6 +24,8 @@ function RootStack() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+        <Stack.Screen name="(lock)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="dev" options={{ headerShown: false }} />
       </Stack>
@@ -38,7 +41,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider preference={themePreference}>
           <ToastProvider>
-            <RootStack />
+            <AuthGate>
+              <RootStack />
+            </AuthGate>
           </ToastProvider>
         </ThemeProvider>
       </SafeAreaProvider>

@@ -1,10 +1,29 @@
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 
+import { useAppLockStore } from '@/features/app-lock/app-lock-store';
+import { useAuthStore } from '@/features/auth/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
+import {
+  createFakeSupabase,
+  makeProfile,
+  makeSession,
+  type FakeSupabase,
+} from '@/test-utils/supabase-mock';
+
+// `mock`-prefixed so jest allows the factory below to close over it.
+let mockSupabase: FakeSupabase;
+
+jest.mock('@/lib/supabase', () => ({
+  getSupabaseClient: () => mockSupabase,
+  startSupabaseAutoRefresh: () => () => {},
+}));
 
 describe('settings flows', () => {
   beforeEach(() => {
     useSettingsStore.getState().reset();
+    useAuthStore.getState().reset();
+    useAppLockStore.getState().reset();
+    mockSupabase = createFakeSupabase({ session: makeSession(), profile: makeProfile() });
   });
 
   it('switches the theme from the appearance screen', async () => {
@@ -36,5 +55,22 @@ describe('settings flows', () => {
 
     await fireEvent(screen.getByLabelText('Toggle privacy mode'), 'valueChange', true);
     expect(useSettingsStore.getState().privacyMode).toBe(true);
+  });
+
+  it('shows who is signed in', async () => {
+    await renderRouter('app', { initialUrl: '/settings' });
+    await screen.findByLabelText('Settings screen');
+
+    expect(screen.getByText('alice@example.com')).toBeOnTheScreen();
+  });
+
+  it('signs out and lands back on the welcome screen', async () => {
+    await renderRouter('app', { initialUrl: '/settings' });
+    await screen.findByLabelText('Settings screen');
+
+    await fireEvent.press(screen.getByLabelText('Sign out of FinPilot'));
+
+    expect(await screen.findByLabelText('Welcome screen')).toBeOnTheScreen();
+    expect(mockSupabase.auth.signOut).toHaveBeenCalled();
   });
 });
