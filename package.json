@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "start": "expo start --dev-client",
+    "start:go": "expo start --go",
+    "start:tunnel": "expo start --go --tunnel",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "lint": "eslint .",

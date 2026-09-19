@@ -56,6 +56,20 @@ Install the resulting build, then start the dev server:
 npm start
 ```
 
+### Quick preview in Expo Go
+
+While the app only uses native modules that Expo Go already ships, you can
+preview it without building anything:
+
+```bash
+npm run start:go        # same Wi-Fi as your laptop
+npm run start:tunnel    # different networks
+```
+
+**This is a preview, not the workflow.** PowerSync arrives in Phase 3 and is a
+real native module, so from then on Expo Go cannot load the app and a
+development build is required.
+
 If you have the native toolchain locally you can skip EAS and build directly:
 
 ```bash
@@ -68,6 +82,8 @@ npm run ios       # expo run:ios (macOS only)
 | Script                 | What it does                      |
 | ---------------------- | --------------------------------- |
 | `npm start`            | Metro bundler for the dev client  |
+| `npm run start:go`     | Metro in Expo Go mode (preview)   |
+| `npm run start:tunnel` | Expo Go over a tunnel             |
 | `npm run android`      | Build + run the Android dev build |
 | `npm run ios`          | Build + run the iOS dev build     |
 | `npm run lint`         | ESLint                            |
