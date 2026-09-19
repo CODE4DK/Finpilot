@@ -152,4 +152,71 @@ jest.mock('expo-apple-authentication', () => ({
   signInAsync: jest.fn(async () => ({ identityToken: null })),
 }));
 
+/**
+ * Victory Native draws through Skia, which is a native canvas - there is
+ * nothing for it to paint into under Jest. The charts are mocked down to
+ * plain views so the tests can assert the thing that actually matters for a
+ * chart in this app: the accessible summary and the list beside it.
+ */
+jest.mock('victory-native', () => {
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const React = require('react');
+  const { View } = require('react-native');
+  /* eslint-enable @typescript-eslint/no-require-imports */
+
+  const passthrough = (testID: string) =>
+    function MockChart({ children }: { children?: unknown }) {
+      return React.createElement(
+        View,
+        { testID },
+        typeof children === 'function' ? null : (children as React.ReactNode),
+      );
+    };
+
+  const Pie = Object.assign(passthrough('pie'), {
+    Chart: passthrough('pie-chart'),
+    Slice: passthrough('pie-slice'),
+    Label: passthrough('pie-label'),
+    SliceAngularInset: passthrough('pie-inset'),
+  });
+
+  const BarGroup = Object.assign(passthrough('bar-group'), {
+    Bar: passthrough('bar'),
+  });
+
+  return {
+    CartesianChart: passthrough('cartesian-chart'),
+    PolarChart: passthrough('polar-chart'),
+    Pie,
+    BarGroup,
+    Bar: passthrough('bar'),
+  };
+});
+
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: jest.fn(async () => true),
+  shareAsync: jest.fn(async () => {}),
+}));
+
+jest.mock('expo-file-system', () => {
+  class MockFile {
+    uri: string;
+    exists = false;
+    contents = '';
+    constructor(...parts: unknown[]) {
+      this.uri = `file:///cache/${String(parts[parts.length - 1])}`;
+    }
+    create() {
+      this.exists = true;
+    }
+    write(content: string) {
+      this.contents = content;
+    }
+    delete() {
+      this.exists = false;
+    }
+  }
+  return { File: MockFile, Paths: { cache: { uri: 'file:///cache/' } } };
+});
+
 export {};

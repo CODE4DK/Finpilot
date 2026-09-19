@@ -276,9 +276,9 @@ describe('budgets and reports', () => {
     await renderRouter('app', { initialUrl: '/reports' });
     await screen.findByLabelText('Reports screen');
 
-    await fireEvent.press(screen.getByLabelText('Show the last year'));
+    await fireEvent.press(screen.getByLabelText('Show 12 months'));
 
-    expect(screen.getByLabelText('Show the last year')).toBeSelected();
+    expect(screen.getByLabelText('Show 12 months')).toBeSelected();
   });
 });
 

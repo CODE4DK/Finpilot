@@ -3,6 +3,65 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 7] - 2026-09-19 - Reports, charts and CSV export
+
+### Added
+
+- **Report aggregation as SQL over the local database**
+  (`src/features/reports/queries.ts`): period totals, spend per category,
+  income and expense per month, this period against the one before it per
+  category, the largest expenses, and the export rows with names joined on.
+  Nothing is computed server-side and nothing is fetched, so the whole tab
+  works offline. The builders return `{ sql, parameters }` like the
+  repositories do, so the hooks hand them to PowerSync's `useQuery` and the
+  screen re-renders the moment a transaction changes.
+- **Period selector**: this month, last month, 3, 6 or 12 months, and a custom
+  range picked as two dates. The trailing presets are whole calendar months
+  ending with the current one, so the trend chart has clean buckets.
+- **Spending by category**: a Victory Native (Skia) donut with the ranked list
+  beside it - amount, share and entry count per category. Tapping a category
+  opens its transactions for the same period at
+  `/reports/category/[id]`, with the window carried in the URL so back and
+  deep links both behave.
+- **Income against expense**: a grouped bar chart, one pair per month, with a
+  legend and month labels as ordinary text below the canvas.
+- **Month-over-month change per category**, with a direction arrow that is
+  always accompanied by the percentage, and a "new" state instead of an
+  infinite percentage for a category with nothing behind it.
+- **Top 5 expenses and daily average spend.** The average divides by the days
+  the period has actually seen, so a month in progress reads honestly instead
+  of dividing a part-month by 30.
+- **CSV export** (expo-file-system + expo-sharing) for the chosen period:
+  UTF-8 with a BOM, CRLF rows, amounts as plain rupees with two decimals and a
+  signed column for pivots, and fields that could be read as a formula
+  neutralised - a note reading `=cmd|...` is a real attack on whoever opens
+  the file.
+- **Chart colours** (`src/theme/chart-colors.ts`), validated against the app's
+  actual surfaces for colour-vision deficiency rather than chosen by eye.
+- **Tests** (+78, 1062 total): the SQL runs against a real in-memory SQLite,
+  so the aggregation is proved rather than asserted as a string - including
+  that transfers, soft-deleted rows and other users never reach a total. Plus
+  period resolution across year boundaries and DST, slice folding, change
+  direction, the accessible summaries, and every CSV escaping rule.
+
+### Notes
+
+- The trend bars are blue and orange, **not** the app's income green and
+  expense red. That pair scores a CVD colour distance of 4.2 under
+  deuteranopia - far below the floor of 8 - so a red-green viewer would see
+  two identical bars. Blue and orange score 24.7. The green and red stay on
+  amounts, where the sign carries the meaning too.
+- Past eight categories everything folds into one grey "Other" rather than
+  cycling the palette: two slices wearing the same colour is worse than one
+  honest remainder.
+- Monthly buckets are a UNION of per-month aggregates rather than a `GROUP BY
+strftime(...)`, because `occurred_at` is a UTC instant and the buckets must
+  be local months. It also means a month with no transactions draws a zero bar
+  instead of disappearing off the axis.
+- Each chart is a single accessibility node carrying a spoken summary of the
+  data - a Skia canvas tells a screen reader nothing, and announcing the
+  individual slices would read out a list of shapes.
+
 ## [Phase 6] - 2026-09-19 - Budgets, alerts and savings goals
 
 ### Added

@@ -1,3 +1,4 @@
+export * from './chart-colors';
 export * from './colors';
 export * from './contrast';
 export * from './elevation';

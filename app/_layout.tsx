@@ -32,6 +32,7 @@ function RootStack() {
         <Stack.Screen name="goals" options={{ headerShown: false }} />
         <Stack.Screen name="categories" options={{ headerShown: false }} />
         <Stack.Screen name="recurring" options={{ headerShown: false }} />
+        <Stack.Screen name="reports" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="dev" options={{ headerShown: false }} />
       </Stack>
