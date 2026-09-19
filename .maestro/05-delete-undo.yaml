@@ -1,0 +1,34 @@
+# Swipe to delete, then Undo. The row comes back with its original id, so the
+# restore reaches the user's other devices too rather than creating a twin.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- tapOn: 'Transactions tab'
+- assertVisible: 'Transactions screen'
+
+- assertVisible: '₹525.00'
+- swipe:
+    from:
+      text: '₹525.00'
+    direction: LEFT
+- tapOn: 'Delete'
+
+# Gone from the list, and the toast offers the way back.
+- assertNotVisible: '₹525.00'
+- assertVisible: 'Transaction deleted'
+- tapOn: 'Undo'
+
+- assertVisible: '₹525.00'
+
+# Deleting for real this time, and letting the toast expire.
+- swipe:
+    from:
+      text: '₹525.00'
+    direction: LEFT
+- tapOn: 'Delete'
+- assertNotVisible: '₹525.00'
+- waitForAnimationToEnd:
+    timeout: 6000
+- assertNotVisible: '₹525.00'

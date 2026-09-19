@@ -1,8 +1,15 @@
-import { render as rntlRender, type RenderOptions } from '@testing-library/react-native';
+import { PowerSyncContext } from '@powersync/react-native';
+import {
+  render as rntlRender,
+  renderHook as rntlRenderHook,
+  type RenderHookOptions,
+  type RenderOptions,
+} from '@testing-library/react-native';
 import type { ReactElement, ReactNode } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/components/toast';
+import { getPowerSync } from '@/db/powersync';
 import { ThemeProvider, type ThemePreference } from '@/theme';
 
 export interface RenderWithThemeOptions extends RenderOptions {
@@ -33,6 +40,26 @@ export function renderWithTheme(ui: ReactElement, options: RenderWithThemeOption
   );
 
   return rntlRender(ui, { wrapper: Wrapper, ...rest });
+}
+
+/**
+ * Renders a hook with the PowerSync context a screen would have.
+ *
+ * `useQuery` reads the database off that context, so a hook that watches a
+ * query cannot be rendered without it - and mocking `useQuery` instead would
+ * test the mock rather than the hook. RNTL v14 renderHook is async.
+ */
+export function renderHookWithDatabase<Result, Props>(
+  hook: (props: Props) => Result,
+  options: RenderHookOptions<Props> = {},
+) {
+  const database = getPowerSync();
+
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <PowerSyncContext.Provider value={database}>{children}</PowerSyncContext.Provider>
+  );
+
+  return rntlRenderHook(hook, { wrapper: Wrapper, ...options });
 }
 
 export * from '@testing-library/react-native';

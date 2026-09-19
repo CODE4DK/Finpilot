@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "test:timezones": "for tz in Asia/Kolkata UTC America/New_York Pacific/Chatham; do echo \"== $tz\"; TZ=$tz jest src/features/ledger/__tests__/period.timezone.test.ts src/features/reports/__tests__/periods.test.ts || exit 1; done",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

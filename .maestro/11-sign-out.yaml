@@ -1,0 +1,20 @@
+# Signing out must leave nothing behind: no session, no local rows, no PIN.
+# Run this last - it ends the session the other flows share.
+appId: com.finpilot.app
+tags:
+  - smoke
+---
+- launchApp
+- assertVisible: 'Home screen'
+
+- tapOn: 'Open settings'
+- assertVisible: 'Settings screen'
+- tapOn: 'Sign out of FinPilot'
+
+# Back at the start, signed out.
+- assertVisible: 'Welcome screen'
+
+# And it stays that way: a relaunch does not walk back into the account.
+- launchApp
+- assertVisible: 'Welcome screen'
+- assertNotVisible: 'Home screen'

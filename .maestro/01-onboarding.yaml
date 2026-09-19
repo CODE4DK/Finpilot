@@ -1,0 +1,48 @@
+# First run: a person who has never opened FinPilot ends up on the Home tab
+# with one account and a profile.
+appId: com.finpilot.app
+tags:
+  - smoke
+env:
+  MAESTRO_EMAIL: qa@example.com
+  MAESTRO_OTP: '123456'
+---
+- clearState
+- launchApp
+
+- assertVisible: 'Welcome screen'
+- tapOn: 'Continue with email'
+
+- assertVisible: 'Email sign in screen'
+- tapOn: 'Email'
+- inputText: ${MAESTRO_EMAIL}
+- tapOn: 'Send code'
+
+- assertVisible: 'Verify code screen'
+# The six boxes are one input; typing fills them left to right.
+- inputText: ${MAESTRO_OTP}
+- tapOn: 'Verify'
+
+# Step 1 of 3 - the name.
+- assertVisible: 'Step 1 of 3'
+- tapOn: 'Your name'
+- inputText: 'QA Tester'
+- tapOn: 'Continue'
+
+# Step 2 of 3 - the first account, with an opening balance.
+- assertVisible: 'Step 2 of 3'
+- tapOn: 'Account name'
+- inputText: 'HDFC Savings'
+- tapOn: 'Opening balance'
+- inputText: '25000'
+- tapOn: 'Continue'
+
+# Step 3 of 3 - the app lock is offered, never forced.
+- assertVisible: 'Step 3 of 3'
+- tapOn: 'Skip for now'
+
+- assertVisible: 'Home screen'
+- assertVisible:
+    text: 'Net worth'
+# The opening balance is the net worth, formatted the Indian way.
+- assertVisible: '₹25,000.00'

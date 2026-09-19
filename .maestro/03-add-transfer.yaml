@@ -1,0 +1,48 @@
+# A transfer moves money between your own accounts. It must net to zero and
+# appear in neither income nor expense - the rule the whole ledger rests on.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- assertVisible: 'Home screen'
+
+# A transfer needs somewhere to go, so make sure there are two accounts.
+- tapOn: 'Open settings'
+- tapOn: 'Accounts'
+- assertVisible: 'Accounts screen'
+- runFlow:
+    when:
+      notVisible: 'Cash'
+    commands:
+      - tapOn: 'Add account'
+      - tapOn: 'Name'
+      - inputText: 'Cash'
+      - tapOn: 'Cash'
+      - tapOn: 'Add account'
+- back
+- back
+
+- tapOn: 'Add a transaction'
+- assertVisible: 'Add transaction screen'
+- tapOn: 'Transfer'
+
+- tapOn: 'Amount'
+- inputText: '1000'
+- hideKeyboard
+
+# From and to, and the form refuses the same account for both.
+- tapOn:
+    text: 'To'
+    optional: true
+- tapOn: 'Cash'
+- tapOn: 'Save'
+
+- assertVisible: 'Transactions screen'
+- assertVisible: '₹1,000.00'
+
+# The month's income and expense are unchanged by it.
+- tapOn: 'Reports tab'
+- assertVisible: 'Reports screen'
+- assertNotVisible:
+    text: 'Transfer'

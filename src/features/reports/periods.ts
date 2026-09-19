@@ -127,8 +127,22 @@ export interface MonthBucket {
 }
 
 /**
+ * The most months the trend chart will draw.
+ *
+ * Past this the bars are a few pixels wide and the labels collide, so a
+ * longer custom range shows its **most recent** months rather than all of
+ * them. The screen says so when it happens: a chart that quietly stops two
+ * years before the totals beside it is worse than one that admits its window.
+ */
+export const MAX_TREND_MONTHS = 24;
+
+/**
  * The months a period covers, oldest first. A partial month at either end
  * still gets a bucket, clipped to the period so the totals stay honest.
+ *
+ * A range longer than `MAX_TREND_MONTHS` is trimmed from the **start**, so
+ * the chart ends where the period ends - `bucketsWereTrimmed` tells the
+ * caller it happened.
  */
 export function monthBuckets(period: Period): MonthBucket[] {
   const start = new Date(period.from);
@@ -141,7 +155,7 @@ export function monthBuckets(period: Period): MonthBucket[] {
 
   let cursor = startOfLocalMonth(start);
   // A period that starts mid-month belongs to the month it starts in.
-  while (cursor < end && buckets.length < 24) {
+  while (cursor < end) {
     const next = startOfNextLocalMonth(cursor);
     const from = cursor < start ? start : cursor;
     const to = next > end ? end : next;
@@ -154,7 +168,19 @@ export function monthBuckets(period: Period): MonthBucket[] {
     cursor = next;
   }
 
-  return buckets;
+  return buckets.slice(-MAX_TREND_MONTHS);
+}
+
+/** True when the chart is showing fewer months than the period covers. */
+export function bucketsWereTrimmed(period: Period): boolean {
+  return monthsBetween(period) > MAX_TREND_MONTHS;
+}
+
+/** How many calendar months a period touches, uncapped. */
+export function monthsBetween(period: Period): number {
+  const start = startOfLocalMonth(new Date(period.from));
+  const end = new Date(new Date(period.to).getTime() - 1);
+  return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
 }
 
 /**

@@ -1,0 +1,24 @@
+# Editing: the amount and the category both change, and the totals follow.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- tapOn: 'Transactions tab'
+- assertVisible: 'Transactions screen'
+
+# Open the most recent row.
+- tapOn:
+    text: '₹450.00'
+    index: 0
+- assertVisible: 'Transaction detail screen'
+
+- tapOn: 'Amount'
+- eraseText
+- inputText: '525'
+- hideKeyboard
+- tapOn: 'Save changes'
+
+- assertVisible: 'Transactions screen'
+- assertVisible: '₹525.00'
+- assertNotVisible: '₹450.00'

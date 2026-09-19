@@ -1,0 +1,34 @@
+# A budget, then enough spending to cross 80% of it. The bar turns amber and
+# the screen says the percentage out loud - colour is never the only signal.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- tapOn: 'Budgets tab'
+- assertVisible: 'Budgets screen'
+
+- tapOn: 'Set a budget'
+- assertVisible: 'New budget screen'
+- tapOn: 'Budget for Food'
+- tapOn: 'Monthly limit'
+- inputText: '1000'
+- hideKeyboard
+- tapOn: 'Set budget'
+
+- assertVisible: 'Budgets screen'
+- assertVisible: '₹1,000'
+
+# Spend 850 of the 1,000 - past the 80% band.
+- tapOn: 'Add a transaction'
+- tapOn: 'Amount'
+- inputText: '850'
+- hideKeyboard
+- tapOn: 'Food'
+- tapOn: 'Save'
+
+- tapOn: 'Budgets tab'
+- assertVisible: 'Budgets screen'
+# 85% - stated in the label, not just in the colour of the bar.
+- assertVisible:
+    text: 'Food budget, 85% used.*'

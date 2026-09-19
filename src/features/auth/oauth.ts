@@ -39,6 +39,14 @@ async function createNonce(): Promise<{ raw: string; hashed: string }> {
   return { raw, hashed };
 }
 
+/**
+ * The client id for this platform.
+ *
+ * `EXPO_PUBLIC_*` variables are **inlined by the bundler**, not read at
+ * runtime, so this cannot be varied by setting an environment variable later -
+ * including in a test. That is why `signInWithGoogle` takes the id as an
+ * argument, defaulted from here, the same way the API layer takes its client.
+ */
 export function googleClientId(): string | undefined {
   return Platform.select({
     ios: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
@@ -47,8 +55,9 @@ export function googleClientId(): string | undefined {
   });
 }
 
-export async function signInWithGoogle(): Promise<Session> {
-  const clientId = googleClientId();
+export async function signInWithGoogle(
+  clientId: string | undefined = googleClientId(),
+): Promise<Session> {
   if (!clientId) {
     throw new ProviderUnavailableError('Google');
   }

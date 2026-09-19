@@ -185,6 +185,20 @@ export default function ReportsScreen() {
               summary={describeTrendChart(report.trend, period.label)}
               testID="trend-bars"
             />
+            {report.trendIsTrimmed ? (
+              // The figures above cover the whole period; the chart cannot
+              // draw sixty legible bars, so it says which months it drew
+              // rather than quietly ending two years early.
+              <Text
+                style={[
+                  theme.typography.caption,
+                  { color: theme.colors.textMuted, marginTop: theme.spacing.sm },
+                ]}
+              >
+                Showing the most recent {report.trend.length} months. The figures above cover the
+                whole period.
+              </Text>
+            ) : null}
           </Card>
         ) : null}
       </Section>

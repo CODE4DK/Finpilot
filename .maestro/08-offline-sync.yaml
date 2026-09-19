@@ -1,0 +1,45 @@
+# The premise of the app: everything works with the radio off, and catches up
+# when it comes back.
+#
+# The radio is toggled through adb, so this flow as written is Android-only.
+# On iOS, run it by hand - see .maestro/README.md. It is worth doing on both
+# before a release: offline is not an edge case here, it is the design.
+appId: com.finpilot.app
+tags:
+  - smoke
+---
+- launchApp
+- assertVisible: 'Home screen'
+
+# Radio off. Maestro has no portable aeroplane-mode command, so this shells
+# out through adb - which is why the flow is Android-only as written.
+- runShellCommand: adb shell cmd connectivity airplane-mode enable
+
+- tapOn: 'Add a transaction'
+- assertVisible: 'Add transaction screen'
+- tapOn: 'Amount'
+- inputText: '199'
+- hideKeyboard
+- tapOn: 'Food'
+- tapOn: 'Save'
+
+# The row is there immediately - it was written locally, not sent anywhere.
+- assertVisible: 'Transactions screen'
+- assertVisible: '₹199.00'
+
+# And the app says so rather than pretending everything is fine.
+- tapOn: 'Home tab'
+- assertVisible:
+    text: 'Offline.*saved on this device'
+
+# Radio back on.
+- runShellCommand: adb shell cmd connectivity airplane-mode disable
+
+# The indicator goes green once the queue has drained.
+- extendedWaitUntil:
+    visible:
+      text: '.*[Ss]ynced.*'
+    timeout: 60000
+
+- tapOn: 'Transactions tab'
+- assertVisible: '₹199.00'

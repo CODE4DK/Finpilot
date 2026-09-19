@@ -1,0 +1,36 @@
+# The core interaction: an expense in three taps once the amount is typed.
+appId: com.finpilot.app
+tags:
+  - smoke
+---
+- launchApp
+- assertVisible: 'Home screen'
+
+- tapOn: 'Add a transaction'
+- assertVisible: 'Add transaction screen'
+
+# Expense is the default type - no tap needed, which is the point.
+- tapOn: 'Amount'
+- inputText: '450'
+- hideKeyboard
+
+# Tap 1: the category. Tap 2: save.
+- tapOn:
+    id: 'category-grid'
+    childOf:
+      text: 'Food'
+    optional: true
+- tapOn:
+    text: 'Food'
+    optional: true
+- tapOn: 'Save'
+
+# Back on the list, with the row and the day total.
+- assertVisible: 'Transactions screen'
+- assertVisible: '₹450.00'
+- assertVisible: 'Today'
+
+# ...and on Home, in this month's spend.
+- tapOn: 'Home tab'
+- assertVisible: 'Home screen'
+- assertVisible: '₹450.00'

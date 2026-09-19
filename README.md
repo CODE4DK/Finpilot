@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 6 — budgets, alerts and savings goals.
+> **Status:** Phase 10 — reports, AI insights, hardening and the test suite.
 
 ## Stack
 
@@ -79,11 +79,32 @@ npm run ios       # expo run:ios (macOS only)
 | `npm run typecheck`      | `tsc --noEmit`                    |
 | `npm test`               | Jest                              |
 | `npm run test:watch`     | Jest in watch mode                |
+| `npm run test:coverage`  | Jest with the 80% floor enforced  |
 | `npm run format`         | Prettier `--write`                |
 | `npm run format:check`   | Prettier `--check`                |
 | `npm run test:timezones` | The period suite under four zones |
 | `npm run db:test`        | pgTAP suite for the SQL schema    |
 | `npm run db:types`       | Regenerate the database types     |
+
+## Testing
+
+| Level              | Where                             | Run it with              |
+| ------------------ | --------------------------------- | ------------------------ |
+| Unit and component | `src/**/__tests__`                | `npm test`               |
+| Screen             | `app/__tests__`                   | `npm test`               |
+| Coverage gate      | `src/features`, `src/utils`       | `npm run test:coverage`  |
+| Timezones          | the period suite under four zones | `npm run test:timezones` |
+| Database           | `supabase/tests`                  | `npm run db:test`        |
+| End to end         | `.maestro/`                       | `maestro test .maestro/` |
+
+`npm run test:coverage` **fails** below 80% statements, branches, functions and
+lines for `src/features` and `src/utils` - the floor is enforced rather than
+reported.
+
+The end-to-end flows drive a real development build on a device; see
+[.maestro/README.md](./.maestro/README.md). What to check by hand before a
+release, and every case the suite is written against, is in
+[docs/TEST_PLAN.md](./docs/TEST_PLAN.md).
 
 ## Project structure
 

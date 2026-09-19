@@ -41,6 +41,7 @@ import {
   type TopExpenseRow,
 } from './queries';
 import {
+  bucketsWereTrimmed,
   elapsedDays,
   monthBuckets,
   precedingPeriod,
@@ -66,6 +67,8 @@ export interface ReportData {
   trend: TrendPoint[];
   changes: CategoryChange[];
   topExpenses: TopExpense[];
+  /** True when the trend chart is showing fewer months than the period covers. */
+  trendIsTrimmed: boolean;
   dailyAveragePaise: number;
   days: number;
   isLoading: boolean;
@@ -116,6 +119,7 @@ export function useReportData(period: ReportPeriod, now: Date = new Date()): Rep
       () => buildTopExpenses(topRows.data, categories.data),
       [topRows.data, categories.data],
     ),
+    trendIsTrimmed: bucketsWereTrimmed({ from, to }),
     dailyAveragePaise: dailyAveragePaise(expense, days),
     days,
     isLoading: totals.isLoading || spend.isLoading,

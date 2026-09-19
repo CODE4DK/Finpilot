@@ -1,0 +1,39 @@
+# The Reports tab: the period selector, both charts, and the drill-down from a
+# category into the transactions behind it.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- tapOn: 'Reports tab'
+- assertVisible: 'Reports screen'
+
+# Every preset is offered.
+- assertVisible: 'This month'
+- assertVisible: 'Last month'
+- assertVisible: '3 months'
+- assertVisible: '12 months'
+
+# The donut is one accessibility node carrying a sentence - a Skia canvas says
+# nothing to a screen reader otherwise.
+- assertVisible:
+    text: 'Spending by category for.*'
+- assertVisible:
+    text: 'Income against expense by month for.*'
+
+# Switching the period keeps the screen honest rather than blanking it.
+- tapOn: '3 months'
+- assertVisible:
+    text: 'Spending by category for.*'
+
+- tapOn: 'This month'
+
+# Tapping a category opens its filtered list for the same period.
+- tapOn:
+    text: 'Food, ₹.*of spending'
+- assertVisible: 'Food transactions'
+- back
+
+- assertVisible: 'Reports screen'
+- assertVisible:
+    text: '.*a day on average over.*'

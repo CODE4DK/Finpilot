@@ -1,3 +1,5 @@
+import { configure } from '@testing-library/react-native';
+
 /**
  * Global test setup.
  *
@@ -195,6 +197,10 @@ jest.mock('victory-native', () => {
 
 // AsyncStorage is a native module; the package ships its own in-memory mock
 // for exactly this, which keeps the preference store's real code under test.
+// See the note on testTimeout in jest.config.js: the default one-second wait
+// is not enough for a router test rendering under coverage instrumentation.
+configure({ asyncUtilTimeout: 10_000 });
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),

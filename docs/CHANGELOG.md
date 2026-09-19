@@ -3,6 +3,68 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 10] - 2026-09-19 - Test suite and QA
+
+### Added
+
+- **`npm run test:coverage`**, with the floor **enforced** rather than
+  reported: the run fails below 80% statements, branches, functions and lines
+  for `src/features` and `src/utils`. Both are now well clear of it -
+  `src/features` at 93% / 86% / 93% / 94% and `src/utils` at 100% / 97% /
+  100% / 100%.
+- **+131 tests** aimed at what was untested rather than at the number: the
+  auth API layer (a forgotten `throw`, an unnormalised email, a success with
+  no session), the Google and Apple paths including every way a user can back
+  out, biometrics, the onboarding store, the app-lock storage layer, the Add
+  screen's hook, all three shared form screens, and the date utilities.
+- **A cross-feature edge-case suite** (`src/features/__tests__/edge-cases.test.ts`)
+  that runs the cases from the test plan rather than describing them: Indian
+  digit grouping at lakh and crore, rounding half away from zero, the month
+  and year boundaries, a monthly rule on the 31st through February, a yearly
+  rule on 29 February, Devanagari and emoji through the CSV, formula
+  injection, and a category that no longer exists.
+- **Eleven Maestro flows** in `.maestro/`: onboarding, add expense, add
+  transfer, edit, delete with undo, a budget crossed past 80%, a goal with a
+  contribution, offline then sync, reports, CSV export and sign out - tagged
+  `smoke` or `regression` so a release can run the short set first.
+- **[docs/TEST_PLAN.md](./TEST_PLAN.md)**: 28 functional cases, 10
+  offline/sync cases, 23 edge cases and 6 accessibility cases, each with
+  steps, expected result and priority - plus the release regression checklist
+  and what it takes to sign off.
+- `renderHookWithDatabase` in `src/test-utils/render.tsx`, so a hook that
+  watches a query can be tested against the real `useQuery` rather than a
+  mock of it.
+
+### Fixed
+
+- **The trend chart silently disagreed with the figures above it.** A custom
+  range longer than 24 months was truncated to the **oldest** 24, so a
+  three-year report drew bars ending in 2024 while the totals, the donut and
+  the daily average covered 2026. The chart now keeps the most **recent**
+  months and says so on screen when it has trimmed.
+- **The suite was flaky under `--coverage`.** The first instrumented run
+  failed 18 tests across 3 suites and the next passed: instrumentation slows
+  every render past React Native Testing Library's one-second default wait.
+  Raised `asyncUtilTimeout` and `testTimeout`; three consecutive coverage runs
+  are now clean.
+- **`signInWithGoogle` could not be tested at all.** `EXPO_PUBLIC_*` variables
+  are inlined by the bundler rather than read at runtime, so no test could
+  give it a client id. It now takes one as an argument, defaulted from the
+  environment - the same seam the API layer uses for its Supabase client.
+
+### Notes
+
+- Coverage is a floor, not a goal. A line can be covered by a test that
+  asserts nothing, which is why the new tests are written against behaviour -
+  what reaches the database, what is refused, what a screen reader hears - and
+  why the thresholds are per directory: a single global number lets a
+  well-tested util subsidise an untested feature while the risk sits exactly
+  where it always did.
+- The offline flow toggles the radio through `adb`, so it is Android-only as
+  written. Offline is the premise of this app rather than a corner of it, so
+  the iOS equivalent is on the manual release checklist instead of being
+  quietly skipped.
+
 ## [Phase 9] - 2026-09-19 - Settings, account deletion and hardening
 
 ### Added

@@ -1,0 +1,37 @@
+# CSV export reaches the system share sheet.
+#
+# What the file contains is covered by unit tests - the escaping, the BOM, the
+# formula neutralising. What only a device can tell you is whether the sheet
+# opens at all.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- tapOn: 'Reports tab'
+- assertVisible: 'Reports screen'
+
+- tapOn:
+    text: 'Export .* as a CSV file'
+
+# The share sheet is a system UI, so assert on what it offers rather than on
+# FinPilot's own chrome.
+- extendedWaitUntil:
+    visible:
+      text: '.*[Ss]hare.*'
+    timeout: 15000
+- back
+
+- assertVisible: 'Reports screen'
+
+# The whole-archive export lives in Settings, and is a separate file.
+- tapOn: 'Home tab'
+- tapOn: 'Open settings'
+- tapOn: 'Export and delete'
+- assertVisible: 'Data settings screen'
+- tapOn: 'Export all of your FinPilot data as a file'
+- extendedWaitUntil:
+    visible:
+      text: '.*[Ss]hare.*'
+    timeout: 15000
+- back

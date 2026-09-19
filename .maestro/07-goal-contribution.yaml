@@ -1,0 +1,32 @@
+# A savings goal and a contribution against it.
+appId: com.finpilot.app
+tags:
+  - regression
+---
+- launchApp
+- tapOn: 'Open settings'
+- tapOn: 'Goals'
+- assertVisible: 'Goals screen'
+
+- tapOn: 'Create a goal'
+- tapOn: 'What are you saving for?'
+- inputText: 'Emergency fund'
+- tapOn: 'Target'
+- inputText: '50000'
+- hideKeyboard
+- tapOn: 'Create goal'
+
+- assertVisible: 'Goals screen'
+- assertVisible: 'Emergency fund'
+
+- tapOn: 'Emergency fund'
+- tapOn: 'Add contribution'
+- tapOn: 'Amount'
+- inputText: '5000'
+- hideKeyboard
+- tapOn: 'Add'
+
+# 5,000 of 50,000 - a tenth of the way, and the ring says so.
+- assertVisible: '₹5,000.00'
+- assertVisible:
+    text: '.*10%.*'

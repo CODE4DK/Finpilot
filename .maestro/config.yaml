@@ -1,0 +1,13 @@
+# Shared configuration for every flow in this directory.
+#
+# `maestro test .maestro/` runs them all; each flow is also runnable on its
+# own, because a flow that only passes as part of a suite is a flow that
+# silently depends on another one's leftovers.
+flows:
+  - '*.yaml'
+
+# Ordered so the suite reads as a user's first day: sign in, record something,
+# correct it, plan with it, then look back at it.
+includeTags:
+  - smoke
+  - regression

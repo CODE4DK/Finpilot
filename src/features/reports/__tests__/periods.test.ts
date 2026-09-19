@@ -1,6 +1,9 @@
 import {
+  MAX_TREND_MONTHS,
+  bucketsWereTrimmed,
   elapsedDays,
   monthBuckets,
+  monthsBetween,
   precedingPeriod,
   resolveReportPeriod,
 } from '@/features/reports/periods';
@@ -123,5 +126,55 @@ describe('elapsedDays', () => {
   it('never divides by zero', () => {
     const period = resolveReportPeriod('custom', NOW, { start: NOW, end: NOW });
     expect(elapsedDays(period, NOW)).toBe(1);
+  });
+});
+
+describe('a range longer than the chart can draw', () => {
+  it('caps the buckets rather than drawing sixty bars', () => {
+    const period = resolveReportPeriod('custom', NOW, {
+      start: new Date(2023, 0, 1),
+      end: new Date(2026, 8, 19),
+    });
+
+    expect(monthsBetween(period)).toBe(45);
+    expect(monthBuckets(period)).toHaveLength(MAX_TREND_MONTHS);
+  });
+
+  it('keeps the most recent months, not the oldest', () => {
+    // The bug this covers: the chart used to stop at the 24th month from the
+    // start, so a three-year range drew bars ending in 2024 while the totals
+    // beside it covered 2026.
+    const period = resolveReportPeriod('custom', NOW, {
+      start: new Date(2023, 0, 1),
+      end: new Date(2026, 8, 19),
+    });
+
+    const buckets = monthBuckets(period);
+
+    expect(buckets.at(-1)!.key).toBe('2026-09');
+    expect(buckets[0]!.key).toBe('2024-10');
+  });
+
+  it('says when it has trimmed, so the screen can admit it', () => {
+    const long = resolveReportPeriod('custom', NOW, {
+      start: new Date(2023, 0, 1),
+      end: new Date(2026, 8, 19),
+    });
+    const short = resolveReportPeriod('last-12-months', NOW);
+
+    expect(bucketsWereTrimmed(long)).toBe(true);
+    expect(bucketsWereTrimmed(short)).toBe(false);
+  });
+
+  it('counts the months a period touches, partial ones included', () => {
+    expect(
+      monthsBetween(
+        resolveReportPeriod('custom', NOW, {
+          start: new Date(2026, 7, 28),
+          end: new Date(2026, 8, 2),
+        }),
+      ),
+    ).toBe(2);
+    expect(monthsBetween(resolveReportPeriod('this-month', NOW))).toBe(1);
   });
 });
