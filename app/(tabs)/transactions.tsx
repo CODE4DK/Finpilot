@@ -43,7 +43,7 @@ export default function TransactionsScreen() {
   const categories = useCategories();
 
   const { filters, setFilters, activeCount, clear, setSearch } = useTransactionFilters();
-  const { items, isLoading } = useTransactionList(filters);
+  const { items, isLoading, hasMore, loadMore } = useTransactionList(filters);
   const [filterSheet, setFilterSheet] = useState(false);
   const [search, setSearchText] = useState('');
 
@@ -211,6 +211,23 @@ export default function TransactionsScreen() {
           keyExtractor={listItemKey}
           testID="transaction-list"
           contentContainerStyle={{ paddingBottom: theme.spacing.xxxl }}
+          // The list is paginated, so scrolling to the end asks for the next
+          // page rather than the screen holding every row from the start.
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.6}
+          ListFooterComponent={
+            hasMore ? (
+              <Text
+                accessibilityLabel="Loading more transactions"
+                style={[
+                  theme.typography.caption,
+                  { color: theme.colors.textMuted, padding: theme.spacing.lg, textAlign: 'center' },
+                ]}
+              >
+                Loading more…
+              </Text>
+            ) : null
+          }
         />
       )}
 

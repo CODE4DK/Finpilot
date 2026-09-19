@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { connectPowerSync, disconnectPowerSync } from '@/db/powersync';
 import { useAuthStore } from '@/features/auth/auth-store';
 
+import { logWarn } from '@/lib/logger';
+
 /**
  * Connects PowerSync once a user is signed in, and disconnects when they are
  * not. The local database is only cleared on an explicit sign-out - see
@@ -26,7 +28,7 @@ export function useSyncLifecycle() {
         if (!cancelled) {
           // Connecting is retried by PowerSync itself; surfacing the state is
           // the indicator's job, so this only needs to not crash the tree.
-          console.warn('[powersync] connect failed', error);
+          logWarn('powersync', 'connect failed', error);
         }
       }
     })();

@@ -39,9 +39,21 @@ export function paiseToRupees(paise: number): number {
 }
 
 /**
+ * The largest amount that survives the round trip to paise: `MAX_SAFE_INTEGER`
+ * paise is about 90 thousand crore rupees. Past it, integer arithmetic stops
+ * being exact and `assertPaise` refuses the value.
+ */
+export const MAX_AMOUNT_RUPEES = Math.floor(Number.MAX_SAFE_INTEGER / PAISE_PER_RUPEE);
+
+/**
  * Parse free-form user input ("1,234.50", "₹1234", "-90") into paise.
  * Returns null when the input is not a valid amount, so callers can show a
  * validation message instead of handling an exception.
+ *
+ * "Not valid" includes "too large to be exact": a user holding a key down can
+ * reach 1e20, and turning that into paise is a `MoneyError` thrown from inside
+ * a keystroke handler. A rejected amount is a validation message; a thrown one
+ * is a crash.
  */
 export function parseAmountToPaise(input: string): number | null {
   const cleaned = input.replace(/[₹,\s]/g, '');
@@ -49,7 +61,7 @@ export function parseAmountToPaise(input: string): number | null {
     return null;
   }
   const parsed = Number(cleaned);
-  if (!Number.isFinite(parsed)) {
+  if (!Number.isFinite(parsed) || Math.abs(parsed) > MAX_AMOUNT_RUPEES) {
     return null;
   }
   return rupeesToPaise(parsed);

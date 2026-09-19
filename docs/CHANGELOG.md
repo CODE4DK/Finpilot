@@ -3,6 +3,92 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 9] - 2026-09-19 - Settings, account deletion and hardening
+
+### Added
+
+- **Settings, rebuilt around three groups** - your money, the app, your data -
+  with a profile screen (name, read-only email, and why INR is not a dropdown),
+  a notifications screen, a lock timeout, an export screen and a delete-account
+  route.
+- **Preferences that survive a restart.** Theme, privacy mode and the alert
+  toggle were in memory only, so every relaunch forgot them. They are now in
+  AsyncStorage - preferences are not credentials, so they do not belong in the
+  keychain with the session and the PIN - read back once at launch, narrowed on
+  read, and wiped from disk on sign-out.
+- **A configurable app-lock timeout**: immediately, 1, 5 or 15 minutes, with a
+  stored value that is only honoured if it is one of those.
+- **`delete-account` Edge Function** - the one hard delete in FinPilot, and
+  what both app stores require. Verifies the JWT, requires the word `DELETE`,
+  deletes children before parents and the auth user last, so a failure part-way
+  leaves the user able to sign in and try again. The screen makes them type the
+  word and offers an export first.
+- **Export everything**: one JSON archive of all nine tables, read from the
+  local database so it works offline, with the amounts labelled as integer
+  paise for whoever opens it in three years.
+- **Privacy policy and terms**, the app version and the build number on About -
+  opened through a guard that allows `https:` and nothing else.
+- **A redacting logger** (`src/lib/logger.ts`). Every log line is scrubbed of
+  JWTs, credentials, emails, phone numbers, anything named like money and any
+  long run of digits, then truncated. There is no `info` or `debug` level on
+  purpose.
+- **Developer tools**: a seed screen that writes 10,000 transactions - three
+  years of a plausible ledger - from a deterministic generator, so performance
+  can be judged at a size a real user reaches.
+
+### Fixed
+
+- **The PIN lockout reset on force-quit.** The failed-attempt counter lived in
+  memory, so five wrong guesses, a force-quit and five more would eventually
+  reach a four-digit PIN. It now persists in secure storage, is clamped on
+  read, and is cleared on a successful unlock.
+- **Sync failures wrote the user's amounts into the device log.** PostgREST
+  quotes the offending values back - `(amount_paise)=(500000)` - and that went
+  straight to `console.warn`. Now redacted.
+- **A long amount crashed the Add screen.** `parseAmountToPaise` had no upper
+  bound, so holding a digit key reached a value that made `assertPaise` throw
+  from inside a keystroke handler. It now returns `null` past
+  `MAX_AMOUNT_RUPEES`, like every other invalid input.
+- **The transactions list pulled every row into JavaScript**, mapped it and
+  grouped it on every keystroke. It now pages 200 rows at a time and grows on
+  scroll.
+
+### Changed
+
+- The categories list renders through FlashList with a hoisted `renderItem`,
+  so a long tail of custom categories recycles rows instead of re-rendering the
+  window.
+- Budget alerts moved from the Settings root to the notifications screen; the
+  permission prompt still happens there, when the user asks for alerts.
+
+### Tests
+
++118, 1256 total, plus 22 new pgTAP assertions.
+
+- **An accessibility audit that walks every screen** on every run: each asserts
+  that every interactive element has a label, that every measurable target is
+  at least 44pt, and that nothing turns OS font scaling off. What it cannot
+  check is whether a label _reads_ well - that still needs a person and a real
+  screen reader.
+- **A performance budget at 10,000 transactions**: grouping a page, grouping
+  the whole ledger (the guard against an accidental quadratic), period totals
+  and account balances, each with a ceiling.
+- Redaction against the exact PostgREST error shape; profile validation
+  including control and zero-width characters; the export archive; the delete
+  confirmation; preference persistence including a corrupt record; the
+  persisted lockout.
+
+### Notes
+
+- Findings and fixes are written up in
+  [docs/SECURITY_REVIEW.md](./SECURITY_REVIEW.md) - seven findings, all fixed
+  here, each now covered by a test so a regression fails the suite rather than
+  waiting for the next review.
+- Screenshot protection stays tied to the app lock rather than being always on.
+  Setting `FLAG_SECURE` unconditionally breaks legitimate screenshots and
+  screen sharing for everyone, to defend against an attacker who already has
+  the unlocked device. Written down as a decision, not left as an oversight.
+
 ## [Phase 8] - 2026-09-19 - AI insights via edge function
 
 ### Added

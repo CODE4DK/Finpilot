@@ -22,7 +22,9 @@ export default function DevLayout() {
         contentStyle: { backgroundColor: theme.colors.background },
       }}
     >
+      <Stack.Screen name="index" options={{ title: 'Developer' }} />
       <Stack.Screen name="components" options={{ title: 'Components' }} />
+      <Stack.Screen name="seed" options={{ title: 'Seed data' }} />
     </Stack>
   );
 }

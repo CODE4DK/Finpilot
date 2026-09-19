@@ -1,7 +1,12 @@
 import { create } from 'zustand';
 
 import { MAX_PIN_ATTEMPTS } from './pin';
-import { DEFAULT_APP_LOCK_SETTINGS, type AppLockSettings } from './storage';
+import {
+  DEFAULT_APP_LOCK_SETTINGS,
+  clearFailedAttempts,
+  writeFailedAttempts,
+  type AppLockSettings,
+} from './storage';
 
 export interface AppLockState {
   /** False until the settings have been read out of secure storage. */
@@ -20,6 +25,7 @@ export interface AppLockState {
     settings: AppLockSettings;
     hasPin: boolean;
     biometricsAvailable: boolean;
+    failedAttempts?: number;
   }) => void;
   setSettings: (settings: AppLockSettings) => void;
   setHasPin: (hasPin: boolean) => void;
@@ -52,12 +58,15 @@ const INITIAL_STATE = {
 export const useAppLockStore = create<AppLockState>((set) => ({
   ...INITIAL_STATE,
 
-  hydrate: ({ settings, hasPin, biometricsAvailable }) =>
+  hydrate: ({ settings, hasPin, biometricsAvailable, failedAttempts = 0 }) =>
     set({
       ready: true,
       settings,
       hasPin,
       biometricsAvailable,
+      // Carried across relaunches, so force-quitting does not reset the
+      // lockout and hand an attacker another five guesses.
+      failedAttempts: Math.min(failedAttempts, MAX_PIN_ATTEMPTS),
       // Cold start with the lock on means locked before the first frame.
       locked: settings.enabled,
     }),
@@ -65,9 +74,16 @@ export const useAppLockStore = create<AppLockState>((set) => ({
   setSettings: (settings) => set({ settings }),
   setHasPin: (hasPin) => set({ hasPin }),
   lock: () => set({ locked: true }),
-  unlock: () => set({ locked: false, failedAttempts: 0, backgroundedAt: null }),
+  unlock: () => {
+    void clearFailedAttempts();
+    set({ locked: false, failedAttempts: 0, backgroundedAt: null });
+  },
   registerFailedAttempt: () =>
-    set((state) => ({ failedAttempts: Math.min(state.failedAttempts + 1, MAX_PIN_ATTEMPTS) })),
+    set((state) => {
+      const failedAttempts = Math.min(state.failedAttempts + 1, MAX_PIN_ATTEMPTS);
+      void writeFailedAttempts(failedAttempts);
+      return { failedAttempts };
+    }),
   setBackgroundedAt: (backgroundedAt) => set({ backgroundedAt }),
   reset: () => set({ ...INITIAL_STATE }),
 }));

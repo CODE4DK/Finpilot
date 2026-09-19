@@ -5,6 +5,8 @@ import { useRecurringRulesRepository, useTransactionsRepository } from '@/db/hoo
 
 import { runRecurringGeneration } from './run-generation';
 
+import { logWarn } from '@/lib/logger';
+
 /**
  * Runs the catch-up on launch and whenever the app returns to the foreground -
  * an app left open overnight should still show this morning's rent.
@@ -32,7 +34,7 @@ export function useRecurringGeneration() {
         .catch((error) => {
           // A failure here must never block the app: the rules stay due and
           // the next foreground tries again.
-          console.warn('[recurring] generation failed', error);
+          logWarn('recurring', 'generation failed', error);
         })
         .finally(() => {
           running.current = false;

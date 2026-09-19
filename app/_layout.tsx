@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -43,6 +44,13 @@ function RootStack() {
 
 export default function RootLayout() {
   const themePreference = useSettingsStore(selectThemePreference);
+  const hydratePreferences = useSettingsStore((state) => state.hydrate);
+
+  // Preferences are read back once, at launch. Until they land the defaults
+  // apply, which is why the theme flashes nothing worse than "system".
+  useEffect(() => {
+    void hydratePreferences();
+  }, [hydratePreferences]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

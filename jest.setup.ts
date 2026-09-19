@@ -193,6 +193,19 @@ jest.mock('victory-native', () => {
   };
 });
 
+// AsyncStorage is a native module; the package ships its own in-memory mock
+// for exactly this, which keeps the preference store's real code under test.
+jest.mock('@react-native-async-storage/async-storage', () =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+jest.mock('expo-application', () => ({
+  nativeBuildVersion: '42',
+  nativeApplicationVersion: '1.0.0',
+  applicationId: 'com.finpilot.app',
+}));
+
 jest.mock('expo-sharing', () => ({
   isAvailableAsync: jest.fn(async () => true),
   shareAsync: jest.fn(async () => {}),

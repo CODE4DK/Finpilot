@@ -6,6 +6,7 @@ import {
   type PowerSyncCredentials,
 } from '@powersync/react-native';
 
+import { logWarn } from '@/lib/logger';
 import { readEnv } from '@/lib/env';
 import { getSupabaseClient, type FinPilotClient } from '@/lib/supabase';
 
@@ -35,8 +36,13 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
     this.onDiscardedUpload =
       options.onDiscardedUpload ??
       ((discarded) => {
-        console.warn(
-          `[powersync] discarded ${discarded.op} on ${discarded.table}#${discarded.rowId}: ${discarded.reason}`,
+        // The reason comes from PostgREST, which quotes the offending values
+        // back at you - so it goes through the redactor rather than straight
+        // to the console.
+        logWarn(
+          'powersync',
+          `discarded ${discarded.op} on ${discarded.table}#${discarded.rowId}`,
+          discarded.reason,
         );
       });
   }

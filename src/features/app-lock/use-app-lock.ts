@@ -5,7 +5,7 @@ import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { useAppLockStore } from './app-lock-store';
 import { getBiometricCapability } from './biometrics';
 import { shouldHideContent, shouldLockOnForeground } from './lock-policy';
-import { readAppLockSettings, readPinRecord } from './storage';
+import { readAppLockSettings, readFailedAttempts, readPinRecord } from './storage';
 
 /**
  * Wires the lock to the app lifecycle:
@@ -26,15 +26,17 @@ export function useAppLockLifecycle() {
     hydrated.current = true;
 
     void (async () => {
-      const [settings, pinRecord, capability] = await Promise.all([
+      const [settings, pinRecord, capability, failedAttempts] = await Promise.all([
         readAppLockSettings(),
         readPinRecord(),
         getBiometricCapability(),
+        readFailedAttempts(),
       ]);
       hydrate({
         settings,
         hasPin: pinRecord !== null,
         biometricsAvailable: capability.available,
+        failedAttempts,
       });
     })();
   }, [hydrate]);
@@ -50,7 +52,12 @@ export function useAppLockLifecycle() {
 
       if (next === 'active') {
         if (
-          shouldLockOnForeground({ enabled: settings.enabled, backgroundedAt, now: Date.now() })
+          shouldLockOnForeground({
+            enabled: settings.enabled,
+            backgroundedAt,
+            now: Date.now(),
+            timeoutMs: settings.timeoutMs,
+          })
         ) {
           lock();
         }

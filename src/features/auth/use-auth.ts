@@ -9,6 +9,8 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { fetchProfile, signOut as signOutRequest } from './api';
 import { useAuthStore } from './auth-store';
 
+import { logWarn } from '@/lib/logger';
+
 /**
  * Restores the stored session on launch and keeps the auth store in step with
  * supabase-js. Mounted once, from the root layout.
@@ -68,7 +70,7 @@ export function useProfileSync() {
       } catch (error) {
         // Offline or a transient failure: leave the profile null so the guard
         // holds position rather than sending the user through onboarding again.
-        console.warn('Could not load profile', error);
+        logWarn('auth', 'could not load the profile', error);
       }
     })();
 
@@ -90,7 +92,7 @@ export async function signOutEverywhere(): Promise<void> {
     // keep serving them.
     await disconnectAndClearPowerSync();
   } catch (error) {
-    console.warn('[powersync] could not clear the local database', error);
+    logWarn('powersync', 'could not clear the local database', error);
   }
 
   try {
@@ -100,7 +102,9 @@ export async function signOutEverywhere(): Promise<void> {
     resetPowerSyncInstance();
     await clearAppLockStorage();
     useAppLockStore.getState().reset();
-    useSettingsStore.getState().reset();
+    // Preferences are wiped from disk too, not just from memory: the next
+    // person to sign in on this device starts from the defaults.
+    await useSettingsStore.getState().clear();
     useAuthStore.getState().reset();
   }
 }

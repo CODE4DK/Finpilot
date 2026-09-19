@@ -223,8 +223,8 @@ describe('budget alerts', () => {
     });
     (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: 'granted' });
 
-    await renderRouter('app', { initialUrl: '/settings' });
-    await screen.findByLabelText('Settings screen');
+    await renderRouter('app', { initialUrl: '/settings/notifications' });
+    await screen.findByLabelText('Notification settings screen');
 
     await fireEvent(screen.getByLabelText('Toggle budget alerts'), 'valueChange', true);
 
@@ -239,12 +239,12 @@ describe('budget alerts', () => {
       canAskAgain: false,
     });
 
-    await renderRouter('app', { initialUrl: '/settings' });
-    await screen.findByLabelText('Settings screen');
+    await renderRouter('app', { initialUrl: '/settings/notifications' });
+    await screen.findByLabelText('Notification settings screen');
 
     await fireEvent(screen.getByLabelText('Toggle budget alerts'), 'valueChange', true);
 
-    expect(await screen.findByText(/phone settings/)).toBeOnTheScreen();
+    expect(await screen.findAllByText(/phone settings/)).not.toHaveLength(0);
     expect(useSettingsStore.getState().budgetAlertsEnabled).toBe(false);
   });
 });

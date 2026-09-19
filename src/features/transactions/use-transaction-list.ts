@@ -1,5 +1,5 @@
 import { useQuery } from '@powersync/react-native';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useAccounts, useCategories, useTransactionsRepository } from '@/db/hooks';
 import type { TransactionFilters, TransactionRow } from '@/db/repositories/transactions';
@@ -17,9 +17,23 @@ export interface TransactionListRow extends TransactionRowData {
 }
 
 /**
+ * How many rows the list holds before the user scrolls.
+ *
+ * Without a ceiling the screen pulls every transaction a user has ever made
+ * into JavaScript, maps it, groups it by day and hands the result to
+ * FlashList - on every keystroke in the search box. At ten thousand rows that
+ * is seconds of work for a screen that shows twenty. The page is large enough
+ * that the first screenful is never short, and `loadMore` grows it as the user
+ * actually scrolls.
+ */
+export const PAGE_SIZE = 200;
+
+/**
  * The transactions screen's data: filters in, a flat list of day headers and
  * rows out, with the account and category names already joined on so the row
  * component does no lookups while scrolling.
+ *
+ * Paginated unless the caller passes its own `limit`.
  */
 export function useTransactionList(filters: TransactionFilters = {}) {
   const repository = useTransactionsRepository();
@@ -27,9 +41,25 @@ export function useTransactionList(filters: TransactionFilters = {}) {
   const categories = useCategories();
 
   const key = JSON.stringify(filters);
+  const [pagination, setPagination] = useState({ key, pages: 1 });
+
+  // A new filter or search term is a new list: start it at one page again, or
+  // a user who scrolled far keeps paying for rows they filtered away. Reset
+  // during render rather than in an effect - an effect would render once with
+  // the old page count and immediately again with the new one.
+  const pages = pagination.key === key ? pagination.pages : 1;
+  if (pagination.key !== key) {
+    setPagination({ key, pages: 1 });
+  }
+
+  const limit = filters.limit ?? PAGE_SIZE * pages;
+
   const query = useMemo(
-    () => (repository ? repository.listQuery(JSON.parse(key)) : null),
-    [repository, key],
+    () =>
+      repository
+        ? repository.listQuery({ ...(JSON.parse(key) as TransactionFilters), limit })
+        : null,
+    [repository, key, limit],
   );
 
   const { data, isLoading } = useQuery<TransactionRow>(
@@ -75,7 +105,16 @@ export function useTransactionList(filters: TransactionFilters = {}) {
     [rows],
   );
 
-  return { items, rows, raw: data, isLoading };
+  /** True while the database still has rows beyond the ones loaded. */
+  const hasMore = filters.limit === undefined && data.length >= limit;
+
+  const loadMore = useCallback(() => {
+    if (hasMore) {
+      setPagination((current) => ({ key, pages: current.key === key ? current.pages + 1 : 2 }));
+    }
+  }, [hasMore, key]);
+
+  return { items, rows, raw: data, isLoading, hasMore, loadMore, loaded: data.length };
 }
 
 export interface ActiveFilters extends TransactionFilters {

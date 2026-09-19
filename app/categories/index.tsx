@@ -1,18 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import {
-  Button,
-  Card,
-  CategoryIcon,
-  Chip,
-  ListItem,
-  Screen,
-  SwipeRow,
-  useToast,
-} from '@/components';
+import { Button, CategoryIcon, Chip, ListItem, Screen, SwipeRow, useToast } from '@/components';
 import { useCategories, useCategoriesRepository } from '@/db/hooks';
 import { canDeleteCategory, describeDeleteBlock } from '@/features/categories/ordering';
 import { useTheme } from '@/theme';
@@ -60,9 +52,51 @@ export default function CategoriesScreen() {
     });
   };
 
+  /**
+   * Hoisted out of the list so FlashList gets a stable function rather than a
+   * new closure on every render - which is what lets it recycle rows instead
+   * of re-rendering the visible window. A user with a long tail of custom
+   * categories notices the difference; the seventeen defaults do not.
+   */
+  const renderItem = useCallback(
+    ({ item, index }: { item: (typeof data)[number]; index: number }) => (
+      <SwipeRow
+        testID={`swipe-category-${item.id}`}
+        rightActions={[
+          {
+            label: 'Delete',
+            icon: 'trash-outline',
+            tone: 'expense',
+            onPress: () => void remove(item),
+          },
+        ]}
+      >
+        <ListItem
+          title={item.name}
+          subtitle={item.is_default === 1 ? 'Built-in' : 'Custom'}
+          leading={<CategoryIcon glyph={item.icon} color={item.color ?? undefined} />}
+          trailing={<Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />}
+          onPress={() => router.push(`/categories/${item.id}`)}
+          showDivider={index < data.length - 1}
+        />
+      </SwipeRow>
+    ),
+    // `remove` closes over the repository and the toast, both stable enough
+    // for the lifetime of the screen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.length, router, theme.colors.textMuted],
+  );
+
   return (
-    <Screen accessibilityLabel="Categories screen" scrollable>
-      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+    <Screen accessibilityLabel="Categories screen" padded={false}>
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.lg,
+        }}
+      >
         <Chip
           label="Expense"
           selected={type === 'expense'}
@@ -77,48 +111,30 @@ export default function CategoriesScreen() {
         />
       </View>
 
-      <Card padded={false}>
-        <View style={{ paddingHorizontal: theme.spacing.lg }}>
-          {data.map((category, index) => (
-            <SwipeRow
-              key={category.id}
-              testID={`swipe-category-${category.id}`}
-              rightActions={[
-                {
-                  label: 'Delete',
-                  icon: 'trash-outline',
-                  tone: 'expense',
-                  onPress: () => void remove(category),
-                },
-              ]}
-            >
-              <ListItem
-                title={category.name}
-                subtitle={category.is_default === 1 ? 'Built-in' : 'Custom'}
-                leading={<CategoryIcon glyph={category.icon} color={category.color ?? undefined} />}
-                trailing={
-                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
-                }
-                onPress={() => router.push(`/categories/${category.id}`)}
-                showDivider={index < data.length - 1}
-              />
-            </SwipeRow>
-          ))}
-        </View>
-      </Card>
+      <View style={{ flex: 1 }}>
+        <FlashList
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={(category) => category.id}
+          testID="category-list"
+          contentContainerStyle={{ paddingHorizontal: theme.spacing.lg }}
+        />
+      </View>
 
-      <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
-        Built-in categories can be renamed or archived, but not deleted — past transactions still
-        point at them.
-      </Text>
+      <View style={{ gap: theme.spacing.md, padding: theme.spacing.lg }}>
+        <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
+          Built-in categories can be renamed or archived, but not deleted — past transactions still
+          point at them.
+        </Text>
 
-      <Button
-        label="Add category"
-        variant="secondary"
-        fullWidth
-        onPress={() => router.push('/categories/new')}
-        leading={<Ionicons name="add" size={20} color={theme.colors.text} />}
-      />
+        <Button
+          label="Add category"
+          variant="secondary"
+          fullWidth
+          onPress={() => router.push('/categories/new')}
+          leading={<Ionicons name="add" size={20} color={theme.colors.text} />}
+        />
+      </View>
     </Screen>
   );
 }

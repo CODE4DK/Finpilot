@@ -311,6 +311,7 @@ project.
 | `supabase/tests/03_conflict_resolution.test.sql` | last write wins by `updated_at`: stale writes skipped, clock skew clamped, stale deletes ignored |
 | `supabase/tests/04_ai_insights.test.sql` | the AI request log is server-side only: RLS on with no policies, no client privileges, not replicated |
 | `supabase/tests/05_ai_insight_aggregates.test.sql` | the AI aggregation returns the right figures and **no** notes, account names, transfers or other users' rows; a client cannot call it |
+| `supabase/tests/06_account_deletion.test.sql` | a client still cannot hard-delete; the Edge Function's delete order satisfies every foreign key; the other user is untouched; the auth-user cascade catches the rest |
 
 ## Server-side-only objects
 

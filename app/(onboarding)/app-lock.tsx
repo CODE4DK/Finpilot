@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 
 import { Button, PinPad, ProgressBar, Screen, useToast } from '@/components';
 import {
+  DEFAULT_APP_LOCK_SETTINGS,
   createPinRecord,
   getBiometricCapability,
   useAppLockStore,
@@ -42,8 +43,13 @@ export default function OnboardingAppLockScreen() {
         const record = await createPinRecord(pinToStore);
         const capability = await getBiometricCapability();
         await writePinRecord(record);
-        await writeAppLockSettings({ enabled: true, biometricsEnabled: capability.available });
-        setLockSettings({ enabled: true, biometricsEnabled: capability.available });
+        const settings = {
+          ...DEFAULT_APP_LOCK_SETTINGS,
+          enabled: true,
+          biometricsEnabled: capability.available,
+        };
+        await writeAppLockSettings(settings);
+        setLockSettings(settings);
         setHasPin(true);
       }
 

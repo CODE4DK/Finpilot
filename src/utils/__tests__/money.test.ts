@@ -1,4 +1,5 @@
 import {
+  MAX_AMOUNT_RUPEES,
   MoneyError,
   absPaise,
   addPaise,
@@ -249,5 +250,28 @@ describe('safe arithmetic', () => {
 
   it('refuses to produce an unsafe integer', () => {
     expect(() => addPaise(Number.MAX_SAFE_INTEGER, 1)).toThrow(MoneyError);
+  });
+});
+
+describe('parseAmountToPaise refuses what it cannot represent', () => {
+  it('rejects an amount too large to be exact integer paise', () => {
+    // Holding a digit key down reaches this in a couple of seconds, and the
+    // conversion used to throw from inside the keystroke handler.
+    expect(parseAmountToPaise('99999999999999999999')).toBeNull();
+    expect(parseAmountToPaise(`${MAX_AMOUNT_RUPEES + 1}`)).toBeNull();
+  });
+
+  it('rejects it in the negative direction too', () => {
+    expect(parseAmountToPaise(`-${MAX_AMOUNT_RUPEES + 1}`)).toBeNull();
+  });
+
+  it('still accepts an amount at the limit', () => {
+    expect(parseAmountToPaise(`${MAX_AMOUNT_RUPEES}`)).toBe(MAX_AMOUNT_RUPEES * 100);
+  });
+
+  it('never throws, whatever is typed at it', () => {
+    for (const input of ['9'.repeat(30), '1e309', '...', '-', '₹₹₹', '0.000001']) {
+      expect(() => parseAmountToPaise(input)).not.toThrow();
+    }
   });
 });

@@ -4,6 +4,7 @@ import { Switch, Text, View } from 'react-native';
 
 import { BottomSheet, Button, Card, ListItem, PinPad, Screen, useToast } from '@/components';
 import {
+  LOCK_TIMEOUT_OPTIONS,
   clearPinRecord,
   createPinRecord,
   useAppLockStore,
@@ -22,6 +23,7 @@ export default function SecuritySettingsScreen() {
   const biometricsAvailable = useAppLockStore((state) => state.biometricsAvailable);
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [timeoutSheet, setTimeoutSheet] = useState(false);
   const [pin, setPin] = useState('');
   const [firstPin, setFirstPin] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -114,6 +116,24 @@ export default function SecuritySettingsScreen() {
             showDivider
           />
           <ListItem
+            title="Lock after"
+            subtitle={
+              settings.enabled
+                ? currentTimeoutLabel(settings.timeoutMs)
+                : 'Turn the app lock on to choose'
+            }
+            leading={<Ionicons name="time-outline" size={22} color={theme.colors.primary} />}
+            trailing={<Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />}
+            onPress={settings.enabled ? () => setTimeoutSheet(true) : undefined}
+            accessibilityLabel={`Lock after ${currentTimeoutLabel(settings.timeoutMs).toLowerCase()}`}
+            accessibilityHint={
+              settings.enabled
+                ? 'Choose how long FinPilot may stay unlocked in the background'
+                : undefined
+            }
+            showDivider
+          />
+          <ListItem
             title={hasPin ? 'Change PIN' : 'Set a PIN'}
             subtitle="Four digits, stored hashed in the device keychain"
             leading={<Ionicons name="keypad-outline" size={22} color={theme.colors.primary} />}
@@ -124,9 +144,36 @@ export default function SecuritySettingsScreen() {
       </Card>
 
       <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
-        The lock engages when FinPilot starts and after a minute in the background. Your PIN never
-        leaves this device.
+        The lock always engages when FinPilot starts cold. In the background it waits as long as you
+        choose above. Your PIN never leaves this device.
       </Text>
+
+      <BottomSheet visible={timeoutSheet} onClose={() => setTimeoutSheet(false)} title="Lock after">
+        <View style={{ paddingBottom: theme.spacing.lg }}>
+          {LOCK_TIMEOUT_OPTIONS.map((option, index) => (
+            <ListItem
+              key={option.ms}
+              title={option.label}
+              onPress={() => {
+                void persist({ ...settings, timeoutMs: option.ms });
+                setTimeoutSheet(false);
+              }}
+              accessibilityLabel={option.label}
+              accessibilityHint={
+                settings.timeoutMs === option.ms
+                  ? 'Currently selected'
+                  : 'Changes when the lock engages'
+              }
+              trailing={
+                settings.timeoutMs === option.ms ? (
+                  <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+                ) : null
+              }
+              showDivider={index < LOCK_TIMEOUT_OPTIONS.length - 1}
+            />
+          ))}
+        </View>
+      </BottomSheet>
 
       <BottomSheet
         visible={sheetOpen}
@@ -145,4 +192,8 @@ export default function SecuritySettingsScreen() {
       </BottomSheet>
     </Screen>
   );
+}
+
+function currentTimeoutLabel(timeoutMs: number): string {
+  return LOCK_TIMEOUT_OPTIONS.find((option) => option.ms === timeoutMs)?.label ?? 'After 1 minute';
 }
