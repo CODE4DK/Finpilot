@@ -31,7 +31,9 @@ Native modules are in play, so the app runs in a **development build**
 
 ```
 app/                  Expo Router routes. Thin screens only.
-  (auth)/             Sign-in, sign-up, forgot-password.
+  (auth)/             Welcome, email, OTP verification.
+  (onboarding)/       First-run wizard.
+  (lock)/             App lock screen.
   (tabs)/             Home, Transactions, Add (centre button), Budgets, Reports.
   settings/           Settings stack.
   dev/                Development-only screens (__DEV__ guarded).
@@ -40,11 +42,12 @@ src/
   test-utils/         Test render helpers (theme + safe area + toast).
   features/<feature>/ Business logic, hooks and feature components.
   lib/                Cross-cutting infrastructure (env, Supabase, Sentry).
-  db/                 PowerSync schema, client and Supabase connector.
+  db/                 PowerSync schema, connector, repositories and hooks.
   theme/              Colors, spacing, typography tokens.
   stores/             Zustand stores.
   utils/              Pure helpers (money, ids, dates).
-supabase/             SQL migrations and Edge Functions.
+supabase/             SQL migrations, Edge Functions and pgTAP tests.
+powersync/            Sync rules (deployed from the PowerSync dashboard).
 docs/                 CHANGELOG and design notes.
 ```
 
@@ -86,6 +89,15 @@ npm run db:types     # regenerate src/db/database.types.ts
 - **`src/db/database.types.ts` is generated** (`npm run db:types`); never edit
   it. Enumerations are TEXT + CHECK in the database, so narrow `string`
   columns through the unions and guards in `src/db/enums.ts`.
+- **Data access goes through `src/db/repositories/*` and the hooks in
+  `src/db/hooks.ts`.** Reads are reactive watched queries; writes are
+  local-first with a client UUID and a client `updated_at` — that timestamp is
+  what resolves sync conflicts (last write wins). Never call Supabase directly
+  from a screen for synced data; the local database is the source of truth.
+  Adding a column means touching four places in step — the migration, the
+  PowerSync schema, the sync rules and the publication — and
+  `src/db/__tests__/schema-parity.test.ts` enforces that. See
+  [docs/SYNC.md](./docs/SYNC.md).
 - **Business logic lives in `src/features/*`;** screen files under `app/` stay
   thin and only compose components and feature hooks.
 - **No secrets in the app bundle.** Only `EXPO_PUBLIC_*` variables reach the

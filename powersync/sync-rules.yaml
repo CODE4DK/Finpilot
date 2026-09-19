@@ -1,0 +1,28 @@
+# PowerSync sync rules for FinPilot.
+#
+# One bucket per user. Every row a device receives is filtered twice: by the
+# bucket parameter here, and by Postgres RLS on the replication connection.
+#
+# Soft-deleted rows are excluded on purpose. Setting deleted_at moves the row
+# out of the user's bucket, and PowerSync then removes it from the device -
+# so a delete replicates to every device without a hard delete ever happening
+# server-side. See docs/SYNC.md.
+#
+# Deploy: PowerSync dashboard -> your instance -> Sync Rules -> paste and
+# "Validate and deploy". Editing this file alone changes nothing.
+
+bucket_definitions:
+  user_data:
+    # request.user_id() is the `sub` claim of the Supabase JWT, which is the
+    # auth.users id - the same value every user_id column holds.
+    parameters: SELECT request.user_id() AS user_id
+    data:
+      - SELECT * FROM profiles WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM accounts WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM categories WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM recurring_rules WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM transactions WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM budgets WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM goals WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM goal_contributions WHERE user_id = bucket.user_id AND deleted_at IS NULL
+      - SELECT * FROM insights WHERE user_id = bucket.user_id AND deleted_at IS NULL

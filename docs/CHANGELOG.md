@@ -3,6 +3,76 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 4] - 2026-09-19 - Offline-first sync with PowerSync
+
+### Added
+
+- **PowerSync SDK** (`@powersync/react-native` 2.2.1 on `@op-engineering/op-sqlite`,
+  which is the adapter that line of the SDK now peers).
+- **Local schema** (`src/db/schema.ts`) mirroring all nine synced tables, with
+  money as INTEGER paise, booleans as 0/1 and timestamps as TEXT, plus indexes
+  matching the hot Postgres ones. `src/db/row-mappers.ts` is the single place
+  that translates those representations.
+- **Sync rules** (`powersync/sync-rules.yaml`): one bucket per user, filtered
+  on `request.user_id()` and `deleted_at IS NULL` — so a soft delete moves the
+  row out of the bucket and PowerSync removes it from every device, without a
+  hard delete ever happening server-side.
+- **Supabase connector** (`src/db/connector.ts`): `fetchCredentials` from the
+  live session (null when signed out, so PowerSync stays disconnected rather
+  than syncing anonymously); `uploadData` mapping PUT → upsert, PATCH → update
+  and DELETE → a `deleted_at` stamp.
+- **Upload failure triage** (`src/db/upload-errors.ts`): transient failures are
+  rethrown for PowerSync to retry; permanent ones (SQLSTATE 22/23/42xxx, HTTP
+  4xx) are logged and discarded so one rejected row cannot block the ordered
+  queue forever. Anything unrecognised counts as transient — discarding a write
+  we do not understand would lose the user's data.
+- **Repositories** (`src/db/repositories/*`) for all nine tables: reads build
+  SQL that hooks hand to `useQuery`, writes are local-first with a client UUID
+  and a client `updated_at`. Account balances, budget progress and goal totals
+  are single queries rather than N+1.
+- **Hooks** (`src/db/hooks.ts`): `useAccounts`, `useCategories`,
+  `useTransactions(filters)`, `useBudgetProgress`, `useGoals`, `useProfile`,
+  `useSyncSummary`, and repository accessors for writes.
+- **Sync status**: `synced | syncing | offline | error` derived in
+  `src/db/sync-status.ts`, shown in the home header as an icon-plus-colour
+  indicator with a detail sheet that explains what each state means for the
+  user's data.
+- **Lifecycle**: connect on sign-in, disconnect when the session goes (without
+  clearing — a token blip must not discard offline work), and
+  `disconnectAndClear` on explicit sign-out.
+- **Conflict resolution migration** (`20260919100000_last_write_wins.sql`):
+  `set_updated_at` now honours a client-supplied `updated_at`, skips a write
+  whose timestamp is older than the stored row, and clamps a fast client clock
+  to `now() + 5 minutes`.
+- **Tests** (+166, 600 total; SQL +16, 127 total): repositories against a
+  mocked database, connector upload translation and error triage, status
+  mapping, row mappers, and a parity test asserting the generated Postgres
+  types, the local schema, the sync rules and the publication all describe the
+  same tables and columns. `03_conflict_resolution.test.sql` proves a stale
+  write loses whole — including a stale delete against a newer edit.
+- **`docs/SYNC.md`**: architecture, type translation, bucket design, the upload
+  queue and its triage, the conflict strategy and what it does _not_ give you,
+  status states, lifecycle and setup steps.
+
+### Changed
+
+- `set_updated_at()` no longer stamps `now()` unconditionally. Without this,
+  "last write wins by `updated_at`" was really "last write to reach the server
+  wins", and a device returning from an hour offline would clobber newer edits.
+- Jest now transforms `.mjs` dependencies (PowerSync ships one) and mocks
+  op-sqlite and the database instance, since a native SQLite engine cannot load
+  under Jest.
+
+### Notes
+
+- Conflict resolution is per row, not per column: two edits to different fields
+  of the same row still means one is lost. For one person with a phone and a
+  tablet that is the right trade; concurrent editors would need per-field
+  timestamps or CRDTs.
+- The sync rules file is version-controlled here but must be **deployed from
+  the PowerSync dashboard** — editing it in the repo changes nothing.
+- op-sqlite is a native module, so a fresh development build is required.
+
 ## [Phase 3] - 2026-09-19 - Authentication, onboarding and app lock
 
 ### Added

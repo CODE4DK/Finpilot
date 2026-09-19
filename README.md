@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 3 — authentication, onboarding and app lock.
+> **Status:** Phase 4 — offline-first sync with PowerSync.
 
 ## Stack
 
@@ -109,6 +109,13 @@ Email OTP, Google and Apple sign-in, with an optional biometric/PIN app lock.
 Every console step — Supabase settings, redirect URLs, Google's three OAuth
 clients, Apple's App ID and key — is in
 [docs/AUTH_SETUP.md](./docs/AUTH_SETUP.md).
+
+## Offline-first sync
+
+Every screen reads from local SQLite and every write lands there first;
+PowerSync replicates when there is a network. The architecture, the upload
+queue and the conflict strategy (last write wins by `updated_at`) are in
+[docs/SYNC.md](./docs/SYNC.md).
 
 ## Database
 

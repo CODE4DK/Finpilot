@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AmountText, Card, CategoryIcon, Chip, ListItem, ProgressBar, Screen } from '@/components';
+import { useSyncSummary } from '@/db/hooks';
+import { SyncIndicator, SyncStatusSheet } from '@/features/sync';
 import { selectPrivacyMode, useSettingsStore } from '@/stores/settings-store';
 import { useTheme } from '@/theme';
 
-/** Phase 1 placeholder: real balances arrive with the data layer in Phase 2. */
+/** Placeholder rows; the reactive queries land with the screens in Phase 5. */
 const SAMPLE_ROWS = [
   {
     id: '1',
@@ -29,12 +32,15 @@ export default function HomeScreen() {
   const theme = useTheme();
   const privacyMode = useSettingsStore(selectPrivacyMode);
   const togglePrivacyMode = useSettingsStore((state) => state.togglePrivacyMode);
+  const syncSummary = useSyncSummary();
+  const [syncSheetOpen, setSyncSheetOpen] = useState(false);
 
   return (
     <Screen accessibilityLabel="Home screen" scrollable>
       <View style={styles.headerRow}>
         <Text style={[theme.typography.title, { color: theme.colors.text }]}>Hello</Text>
         <View style={[styles.headerActions, { gap: theme.spacing.sm }]}>
+          <SyncIndicator summary={syncSummary} onPress={() => setSyncSheetOpen(true)} />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={privacyMode ? 'Show amounts' : 'Hide amounts'}
@@ -121,6 +127,11 @@ export default function HomeScreen() {
           ))}
         </View>
       </Card>
+      <SyncStatusSheet
+        visible={syncSheetOpen}
+        onClose={() => setSyncSheetOpen(false)}
+        summary={syncSummary}
+      />
     </Screen>
   );
 }

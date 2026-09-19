@@ -1,6 +1,16 @@
+const expoPreset = require('jest-expo/jest-preset');
+
 /** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
+  // The preset only transforms .js/.ts; some dependencies (PowerSync's
+  // websocket bundle, for one) ship .mjs, which Node then refuses to parse as
+  // CommonJS. Reuse the preset's babel transform for those too.
+  transform: {
+    ...expoPreset.transform,
+    '^.+\\.mjs$': expoPreset.transform['\\.[jt]sx?$'],
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node', 'mjs'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -26,6 +36,7 @@ module.exports = {
         'react-native-worklets',
         'react-native-reanimated',
         '@powersync/.*',
+        '@op-engineering/.*',
       ].join('|') +
       '))',
   ],

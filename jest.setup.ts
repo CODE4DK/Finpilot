@@ -39,6 +39,43 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// The local database itself. op-sqlite cannot open a database under Jest, so
+// every test gets a fake instance; the repositories - where the logic lives -
+// are tested directly against `createMockDatabase` instead.
+jest.mock('@/db/powersync', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock factories are hoisted above imports.
+  const { createFakePowerSync } = require('@/test-utils/fake-powersync');
+  const instance = createFakePowerSync();
+  return {
+    DATABASE_FILENAME: 'finpilot.sqlite',
+    getPowerSync: jest.fn(() => instance),
+    connectPowerSync: jest.fn(async () => {}),
+    disconnectPowerSync: jest.fn(async () => {}),
+    disconnectAndClearPowerSync: jest.fn(async () => {}),
+    resetPowerSyncInstance: jest.fn(),
+  };
+});
+
+// op-sqlite is the native SQLite engine PowerSync runs on. It has no JS
+// implementation, so importing anything from @powersync/react-native under
+// Jest would throw "Base module not found". The repositories are tested
+// against `createMockDatabase` instead - see src/test-utils/mock-database.ts.
+jest.mock('@op-engineering/op-sqlite', () => ({
+  open: jest.fn(() => {
+    throw new Error('op-sqlite is not available under Jest');
+  }),
+  isSQLCipher: jest.fn(() => false),
+  isLibsql: jest.fn(() => false),
+  isIOSEmbeeded: jest.fn(() => false),
+  getDylibPath: jest.fn(() => ''),
+  moveAssetsDatabase: jest.fn(async () => false),
+  IOS_LIBRARY_PATH: '',
+  IOS_DOCUMENT_PATH: '',
+  ANDROID_DATABASE_PATH: '',
+  ANDROID_FILES_PATH: '',
+  ANDROID_EXTERNAL_FILES_PATH: '',
+}));
+
 jest.mock('expo-local-authentication', () => ({
   AuthenticationType: { FINGERPRINT: 1, FACIAL_RECOGNITION: 2, IRIS: 3 },
   hasHardwareAsync: jest.fn(async () => false),

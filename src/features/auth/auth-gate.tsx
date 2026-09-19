@@ -1,5 +1,9 @@
+import { PowerSyncContext } from '@powersync/react-native';
 import { useRouter, useSegments } from 'expo-router';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
+
+import { getPowerSync } from '@/db/powersync';
+import { useSyncLifecycle } from '@/features/sync/use-sync-lifecycle';
 
 import { useAppLockStore } from '@/features/app-lock/app-lock-store';
 import { PrivacyCover } from '@/features/app-lock/privacy-cover';
@@ -23,6 +27,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useProfileSync();
   useAppLockLifecycle();
   useSecureFlagWhileLocked();
+  useSyncLifecycle();
 
   const router = useRouter();
   const segments = useSegments();
@@ -59,10 +64,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
     state.initialising,
   ]);
 
+  // The database instance is stable for the life of the app; the provider is
+  // what lets useQuery elsewhere in the tree find it.
+  const database = useMemo(() => getPowerSync(), []);
+
   return (
-    <>
+    <PowerSyncContext.Provider value={database}>
       {children}
       {hideContent ? <PrivacyCover /> : null}
-    </>
+    </PowerSyncContext.Provider>
   );
 }

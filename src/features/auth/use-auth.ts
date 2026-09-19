@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 
+import { disconnectAndClearPowerSync, resetPowerSyncInstance } from '@/db/powersync';
 import { useAppLockStore } from '@/features/app-lock/app-lock-store';
 import { clearAppLockStorage } from '@/features/app-lock/storage';
 import { getSupabaseClient, startSupabaseAutoRefresh } from '@/lib/supabase';
@@ -78,15 +79,25 @@ export function useProfileSync() {
 }
 
 /**
- * Signs out and wipes everything this device held for the user: the Supabase
- * session (removed from secure storage by supabase-js), the app-lock PIN and
- * settings, and the in-memory stores.
+ * Signs out and wipes everything this device held for the user: the local
+ * PowerSync database, the Supabase session (removed from secure storage by
+ * supabase-js), the app-lock PIN and settings, and the in-memory stores.
  */
 export async function signOutEverywhere(): Promise<void> {
+  try {
+    // Stop syncing and drop the local rows first: they are another person's
+    // finances if this device is shared, and a half-signed-out app must not
+    // keep serving them.
+    await disconnectAndClearPowerSync();
+  } catch (error) {
+    console.warn('[powersync] could not clear the local database', error);
+  }
+
   try {
     await signOutRequest();
   } finally {
     // Even if the network call fails, the device must forget the user.
+    resetPowerSyncInstance();
     await clearAppLockStorage();
     useAppLockStore.getState().reset();
     useSettingsStore.getState().reset();
