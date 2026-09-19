@@ -3,6 +3,62 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 2] - 2026-09-19 - Database schema with RLS
+
+### Added
+
+- **Migrations** (`supabase/migrations/`), applied in order:
+  - `20260919090000_initial_schema.sql` — the nine tables (`profiles`,
+    `accounts`, `categories`, `recurring_rules`, `transactions`, `budgets`,
+    `goals`, `goal_contributions`, `insights`), their CHECK constraints,
+    foreign keys, indexes and the `set_updated_at()` trigger.
+  - `20260919090100_row_level_security.sql` — RLS enabled _and forced_ on every
+    table with select/insert/update policies scoped to `auth.uid()`, no DELETE
+    policy, `REVOKE DELETE` from client roles, and no client INSERT on
+    `profiles`.
+  - `20260919090200_new_user_trigger.sql` — `handle_new_user()` creates the
+    profile and seeds the 17 default Indian categories (idempotent).
+  - `20260919090300_powersync_publication.sql` — the `powersync` publication
+    over the nine synced tables, with `REPLICA IDENTITY DEFAULT`.
+- **Schema conventions enforced in SQL**: client-supplied UUID PKs, integer
+  paise as `bigint`, `user_id`/`created_at`/`updated_at`/`deleted_at` on every
+  table, soft deletes only, `TEXT` + `CHECK` instead of Postgres enums (SQLite
+  has no enum type, and PowerSync mirrors these tables into SQLite).
+- **Cross-user integrity**: every child foreign key is composite,
+  `(column, user_id) → parent (id, user_id)`, so a transaction cannot reference
+  another user's account even if RLS were misconfigured.
+- **pgTAP suites** (`supabase/tests/`), 111 assertions:
+  - `01_rls.test.sql` (54) — user A cannot read, update, re-own or reference
+    user B's rows; nobody can hard-delete; `anon` is refused outright; soft
+    deletes work and stay visible to their owner for replication.
+  - `02_schema.test.sql` (57) — the new-user trigger and seeded category set,
+    amount/transfer/enum/month constraints, the `updated_at` trigger, indexes
+    and the publication.
+- **`scripts/db-test.sh`** — applies the migrations and runs the same pgTAP
+  files against a plain local Postgres via a test-only Supabase auth shim
+  (`supabase/tests/helpers/local_supabase_shim.sql`), so the suite runs without
+  Docker.
+- **`src/db/database.types.ts`** — generated from the live schema by
+  `scripts/generate-database-types.mjs` (`npm run db:types`), plus
+  `src/db/enums.ts` with the literal unions, type guards and shape helpers that
+  the TEXT + CHECK columns need, all unit tested.
+- **`docs/DATABASE.md`** — principles, a Mermaid ER diagram, a table-by-table
+  reference, the RLS model, the new-user trigger, PowerSync setup (including
+  the replication role that must be created outside version control) and the
+  local workflow.
+- npm scripts: `db:start`, `db:reset`, `db:test`, `db:test:local`, `db:types`.
+
+### Notes
+
+- `supabase start`, `supabase test db` and `supabase gen types` all require
+  Docker, which was unavailable in this environment; the migrations and tests
+  were therefore verified against a local Postgres 16 with the auth shim, and
+  the types were generated from that same live schema. The Docker-based
+  commands remain the canonical workflow.
+- `profiles.user_id` duplicates `profiles.id` (with a CHECK keeping them equal)
+  so every table — and therefore every RLS policy and PowerSync sync rule —
+  keys off `user_id` uniformly.
+
 ## [Phase 1] - 2026-09-19 - Design system and navigation shell
 
 ### Added

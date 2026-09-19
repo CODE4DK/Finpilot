@@ -6,3 +6,6 @@ android/
 ios/
 package-lock.json
 assets/
+
+# SQL is formatted by hand; Prettier has no SQL parser.
+*.sql

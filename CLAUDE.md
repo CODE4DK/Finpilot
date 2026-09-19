@@ -61,6 +61,11 @@ npm test             # Jest
 npm run test:watch   # Jest in watch mode
 npm run format       # Prettier --write
 npm run format:check # Prettier --check
+
+npm run db:start     # supabase start (local stack, needs Docker)
+npm run db:reset     # re-apply every migration
+npm run db:test      # pgTAP suite (works without Docker - see docs/DATABASE.md)
+npm run db:types     # regenerate src/db/database.types.ts
 ```
 
 ## Conventions
@@ -72,6 +77,15 @@ npm run format:check # Prettier --check
   `src/utils/id.ts`). Offline rows cannot wait for a server-assigned id.
 - **Every synced table has `user_id`, `created_at`, `updated_at`,
   `deleted_at`.** Deletes are soft: set `deleted_at`, never remove the row.
+  The database enforces this: there is no DELETE policy and the privilege is
+  revoked from client roles. RLS is enabled _and forced_ on every table, and
+  child rows use composite foreign keys `(column, user_id)` so a row can never
+  reference another user's data. Schema changes go in a new migration under
+  `supabase/migrations/`, with pgTAP coverage in `supabase/tests/` — see
+  [docs/DATABASE.md](./docs/DATABASE.md).
+- **`src/db/database.types.ts` is generated** (`npm run db:types`); never edit
+  it. Enumerations are TEXT + CHECK in the database, so narrow `string`
+  columns through the unions and guards in `src/db/enums.ts`.
 - **Business logic lives in `src/features/*`;** screen files under `app/` stay
   thin and only compose components and feature hooks.
 - **No secrets in the app bundle.** Only `EXPO_PUBLIC_*` variables reach the

@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 1 — design system and navigation shell.
+> **Status:** Phase 2 — database schema with Row Level Security.
 
 ## Stack
 
@@ -77,6 +77,8 @@ npm run ios       # expo run:ios (macOS only)
 | `npm run test:watch`   | Jest in watch mode                |
 | `npm run format`       | Prettier `--write`                |
 | `npm run format:check` | Prettier `--check`                |
+| `npm run db:test`      | pgTAP suite for the SQL schema    |
+| `npm run db:types`     | Regenerate the database types     |
 
 ## Project structure
 
@@ -95,6 +97,19 @@ src/stores/           Zustand stores
 src/utils/            Pure helpers (money, ids, dates)
 supabase/             SQL migrations and Edge Functions
 docs/                 Changelog and design notes
+```
+
+## Database
+
+Postgres on Supabase, replicated to devices by PowerSync. The schema, its RLS
+policies and the local workflow are documented in
+[docs/DATABASE.md](./docs/DATABASE.md).
+
+```bash
+npm run db:start   # local Supabase stack (needs Docker)
+npm run db:reset   # apply every migration from scratch
+npm run db:test    # pgTAP suite: RLS isolation + schema invariants
+npm run db:types   # regenerate src/db/database.types.ts
 ```
 
 ## Component gallery

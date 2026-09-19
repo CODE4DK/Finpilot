@@ -15,4 +15,11 @@ module.exports = defineConfig([
       eqeqeq: ['error', 'always'],
     },
   },
+  {
+    // Node CLI scripts talk to the developer through stdout.
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ]);
