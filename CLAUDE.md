@@ -31,8 +31,13 @@ Native modules are in play, so the app runs in a **development build**
 
 ```
 app/                  Expo Router routes. Thin screens only.
+  (auth)/             Sign-in, sign-up, forgot-password.
+  (tabs)/             Home, Transactions, Add (centre button), Budgets, Reports.
+  settings/           Settings stack.
+  dev/                Development-only screens (__DEV__ guarded).
 src/
   components/         Shared, presentational components.
+  test-utils/         Test render helpers (theme + safe area + toast).
   features/<feature>/ Business logic, hooks and feature components.
   lib/                Cross-cutting infrastructure (env, Supabase, Sentry).
   db/                 PowerSync schema, client and Supabase connector.
@@ -73,7 +78,19 @@ npm run format:check # Prettier --check
   client. Anything privileged belongs in a Supabase Edge Function.
 - **Every new util, hook and calculation gets unit tests.**
 - **Every interactive element has an `accessibilityLabel`** (and an appropriate
-  `accessibilityRole`).
+  `accessibilityRole`), a **44pt minimum touch target** (directly or via
+  `hitSlop`), and allows OS font scaling — cap it with
+  `maxFontSizeMultiplier={theme.fontScaleCaps.control}` on dense controls
+  rather than setting `allowFontScaling={false}`.
+- **Colours come from the theme, never from a raw hex.** Read them with
+  `useTheme()` / `useColors()`. Any new token pair must clear WCAG AA in both
+  schemes — `src/theme/__tests__/contrast.test.ts` enforces this.
+
+Component library: everything in `src/components` is exported from
+`@/components`. Render components in tests with `renderWithTheme` from
+`@/test-utils/render` (RNTL v14 — `render`, `fireEvent` and `renderRouter` are
+all **async**, so `await` them). The live catalogue is `/dev/components`,
+reachable from Settings in a development build.
 
 Additional house style: import shared code through the `@/` alias (`@/utils/money`),
 prefer named exports outside of `app/` routes, and keep modules kebab-cased.

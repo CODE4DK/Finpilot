@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 0 — project foundation.
+> **Status:** Phase 1 — design system and navigation shell.
 
 ## Stack
 
@@ -82,6 +82,10 @@ npm run ios       # expo run:ios (macOS only)
 
 ```
 app/                  Expo Router routes (thin screens)
+  (auth)/             Sign-in, sign-up, forgot-password
+  (tabs)/             Home, Transactions, Add, Budgets, Reports
+  settings/           Settings stack
+  dev/                Development-only screens
 src/components/       Shared presentational components
 src/features/         Per-feature business logic and hooks
 src/lib/              Env, Supabase client, Sentry, logging
@@ -92,6 +96,12 @@ src/utils/            Pure helpers (money, ids, dates)
 supabase/             SQL migrations and Edge Functions
 docs/                 Changelog and design notes
 ```
+
+## Component gallery
+
+In a development build, open **Settings → Component gallery** (or navigate to
+`/dev/components`) for a live catalogue of every component in both themes. The
+route is guarded by `__DEV__` and cannot appear in a release build.
 
 ## Conventions
 

@@ -64,21 +64,13 @@ export interface FormatPaiseOptions {
   signDisplay?: 'auto' | 'always';
 }
 
-/** Format paise for display using the Indian numbering system. */
+/**
+ * Format paise for display. Delegates to `formatINR` so every surface gets
+ * Indian digit grouping, including on Hermes builds that ship a minimal ICU
+ * and would otherwise group `Intl` output the Western way.
+ */
 export function formatPaise(paise: number, options: FormatPaiseOptions = {}): string {
-  const { withSymbol = true, withDecimals = true, signDisplay = 'auto' } = options;
-  assertPaise(paise);
-
-  const formatter = new Intl.NumberFormat('en-IN', {
-    style: withSymbol ? 'currency' : 'decimal',
-    currency: 'INR',
-    currencyDisplay: 'symbol',
-    minimumFractionDigits: withDecimals ? 2 : 0,
-    maximumFractionDigits: withDecimals ? 2 : 0,
-    signDisplay,
-  });
-
-  return formatter.format(paiseToRupees(paise));
+  return formatINR(paise, options);
 }
 
 /** Sum a list of paise amounts, guarding against float contamination. */
@@ -112,4 +104,152 @@ export function percentageOfPaise(part: number, whole: number, decimals = 1): nu
   }
   const factor = 10 ** decimals;
   return Math.round((part / whole) * 100 * factor) / factor;
+}
+
+/**
+ * Group an integer string the Indian way: the last three digits, then pairs.
+ * 100000 -> "1,00,000". Used as a fallback when the JS engine on the device
+ * ships a minimal ICU and `Intl` groups the Western way.
+ */
+export function groupIndianDigits(digits: string): string {
+  if (digits.length <= 3) {
+    return digits;
+  }
+  const lastThree = digits.slice(-3);
+  const rest = digits.slice(0, -3);
+  return `${rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',')},${lastThree}`;
+}
+
+export interface FormatInrOptions extends FormatPaiseOptions {
+  /** Render 1,25,000 as "1.25L" / 1,20,00,000 as "1.2Cr". */
+  compact?: boolean;
+}
+
+/**
+ * The display entry point for money: always integer paise in, a ₹ string out,
+ * grouped the Indian way (1,00,000 - not 100,000) regardless of the engine's
+ * ICU build.
+ */
+export function formatINR(paise: number, options: FormatInrOptions = {}): string {
+  const { withSymbol = true, withDecimals = true, signDisplay = 'auto', compact = false } = options;
+  assertPaise(paise);
+
+  if (compact) {
+    return formatCompactINR(paise, { withSymbol, signDisplay });
+  }
+
+  const negative = paise < 0;
+  const absolute = Math.abs(paise);
+  const rupees = Math.trunc(absolute / PAISE_PER_RUPEE);
+  const remainder = absolute % PAISE_PER_RUPEE;
+
+  const grouped = groupIndianDigits(String(rupees));
+  const decimals = withDecimals ? `.${String(remainder).padStart(2, '0')}` : '';
+  const sign = negative ? '-' : signDisplay === 'always' ? '+' : '';
+  const symbol = withSymbol ? '₹' : '';
+
+  return `${sign}${symbol}${grouped}${decimals}`;
+}
+
+const COMPACT_UNITS = [
+  { threshold: 1_00_00_000_00, suffix: 'Cr', divisor: 1_00_00_000_00 },
+  { threshold: 1_00_000_00, suffix: 'L', divisor: 1_00_000_00 },
+  { threshold: 1_000_00, suffix: 'K', divisor: 1_000_00 },
+] as const;
+
+/** "₹1.25L", "₹2.4Cr" - for chart axes and dense summary tiles. */
+export function formatCompactINR(
+  paise: number,
+  options: Pick<FormatPaiseOptions, 'withSymbol' | 'signDisplay'> = {},
+): string {
+  const { withSymbol = true, signDisplay = 'auto' } = options;
+  assertPaise(paise);
+
+  const negative = paise < 0;
+  const absolute = Math.abs(paise);
+  const sign = negative ? '-' : signDisplay === 'always' ? '+' : '';
+  const symbol = withSymbol ? '₹' : '';
+
+  const unit = COMPACT_UNITS.find((candidate) => absolute >= candidate.threshold);
+  if (!unit) {
+    return formatINR(paise, { withSymbol, withDecimals: false, signDisplay });
+  }
+
+  const value = absolute / unit.divisor;
+  // One decimal, but drop a trailing ".0" so we get "2Cr" rather than "2.0Cr".
+  const rendered = value
+    .toFixed(value < 10 ? 2 : 1)
+    .replace(/0+$/, '')
+    .replace(/\.$/, '');
+  return `${sign}${symbol}${rendered}${unit.suffix}`;
+}
+
+/* ------------------------------------------------------------------ *
+ * Safe arithmetic. Every helper asserts its inputs are integer paise
+ * and its result stays a safe integer, so a float can never creep into
+ * a balance through a stray division.
+ * ------------------------------------------------------------------ */
+
+export function addPaise(a: number, b: number): number {
+  return assertPaise(assertPaise(a) + assertPaise(b));
+}
+
+export function subtractPaise(a: number, b: number): number {
+  return assertPaise(assertPaise(a) - assertPaise(b));
+}
+
+/** Multiply by a whole count (3 instalments), never by a fractional rate. */
+export function multiplyPaise(paise: number, factor: number): number {
+  assertPaise(paise);
+  if (!Number.isSafeInteger(factor)) {
+    throw new MoneyError(`Expected an integer factor, received: ${factor}`);
+  }
+  return assertPaise(paise * factor);
+}
+
+/**
+ * Apply a rate (interest, a share, a tax) and round to the nearest paisa,
+ * half away from zero.
+ */
+export function scalePaise(paise: number, rate: number): number {
+  assertPaise(paise);
+  if (!Number.isFinite(rate)) {
+    throw new MoneyError(`Expected a finite rate, received: ${rate}`);
+  }
+  const scaled = paise * rate;
+  return assertPaise(Math.sign(scaled) * Math.round(Math.abs(scaled)));
+}
+
+export function negatePaise(paise: number): number {
+  // `-0` is a real value in JS and would leak into state and snapshots, so
+  // normalise it back to 0.
+  const negated = -assertPaise(paise);
+  return assertPaise(negated === 0 ? 0 : negated);
+}
+
+export function absPaise(paise: number): number {
+  return assertPaise(Math.abs(assertPaise(paise)));
+}
+
+export function comparePaise(a: number, b: number): -1 | 0 | 1 {
+  const difference = subtractPaise(a, b);
+  return difference === 0 ? 0 : difference < 0 ? -1 : 1;
+}
+
+export function clampPaise(paise: number, min: number, max: number): number {
+  assertPaise(paise);
+  assertPaise(min);
+  assertPaise(max);
+  if (min > max) {
+    throw new MoneyError(`Expected min <= max, received min ${min} and max ${max}`);
+  }
+  return Math.min(Math.max(paise, min), max);
+}
+
+export function isZero(paise: number): boolean {
+  return assertPaise(paise) === 0;
+}
+
+export function isNegative(paise: number): boolean {
+  return assertPaise(paise) < 0;
 }
