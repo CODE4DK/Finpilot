@@ -3,6 +3,18 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- The Budgets and Reports tabs still rendered hardcoded sample figures from
+  Phase 1. With every other screen now showing real data, those numbers were
+  actively misleading - budget bars for budgets the user never created, and a
+  "net this month" unrelated to their money. Both now read from the local
+  database through the existing Phase 4 hooks, with honest empty states when
+  there is nothing to show. Creating and editing budgets is still to come; the
+  Reports screen says plainly that the charts are, while its numbers are live.
+
 ## [Phase 5] - 2026-09-19 - Accounts, transactions and recurring entries
 
 ### Added

@@ -255,6 +255,33 @@ describe('categories', () => {
   });
 });
 
+describe('budgets and reports', () => {
+  it('shows an honest empty state rather than sample budgets', async () => {
+    await renderRouter('app', { initialUrl: '/budgets' });
+    await screen.findByLabelText('Budgets screen');
+
+    expect(await screen.findByText('No budgets for this month')).toBeOnTheScreen();
+  });
+
+  it('reports zero rather than a fabricated figure when there is no data', async () => {
+    await renderRouter('app', { initialUrl: '/reports' });
+    await screen.findByLabelText('Reports screen');
+
+    expect(await screen.findByText('Nothing to report yet')).toBeOnTheScreen();
+    // The old screen hardcoded a net of 52,544 rupees.
+    expect(screen.queryByText(/52,544/)).not.toBeOnTheScreen();
+  });
+
+  it('switches the reporting range', async () => {
+    await renderRouter('app', { initialUrl: '/reports' });
+    await screen.findByLabelText('Reports screen');
+
+    await fireEvent.press(screen.getByLabelText('Show the last year'));
+
+    expect(screen.getByLabelText('Show the last year')).toBeSelected();
+  });
+});
+
 describe('repeating transactions', () => {
   it('shows an empty state when nothing repeats', async () => {
     await renderRouter('app', { initialUrl: '/recurring' });
