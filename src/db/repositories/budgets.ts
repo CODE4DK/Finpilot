@@ -73,6 +73,54 @@ export class BudgetsRepository extends BaseRepository<BudgetRow, BudgetInsert> {
     return this.db.getAll(sql, parameters);
   }
 
+  /**
+   * Copies a month's budgets forward. Categories already budgeted in the
+   * target month are skipped, so running it twice adds nothing and a budget
+   * the user has already adjusted is never overwritten.
+   */
+  async copyFrom(sourceMonth: string, targetMonth: string): Promise<number> {
+    const [source, existing] = await Promise.all([
+      this.listForMonth(sourceMonth),
+      this.listForMonth(targetMonth),
+    ]);
+
+    const alreadyBudgeted = new Set(existing.map((budget) => budget.category_id));
+    const toCopy = source.filter((budget) => !alreadyBudgeted.has(budget.category_id));
+
+    for (const budget of toCopy) {
+      await this.insert({
+        category_id: budget.category_id,
+        month: targetMonth,
+        limit_paise: budget.limit_paise,
+        // A new month starts with a clean slate of alerts.
+        alert_80_sent: 0,
+        alert_100_sent: 0,
+      });
+    }
+
+    return toCopy.length;
+  }
+
+  /** Was anything budgeted last month, so the copy offer is worth showing? */
+  async countForMonth(month: string): Promise<number> {
+    const row = await this.db.getOptional<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM budgets ${this.liveWhere('month = ?')}`,
+      [this.userId, month],
+    );
+    return row?.count ?? 0;
+  }
+
+  /**
+   * Raising a limit clears the alert flags, so the user can be warned again
+   * against the new, larger budget.
+   */
+  async setLimit(id: string, limitPaise: number, previousLimitPaise: number): Promise<void> {
+    await this.update(id, {
+      limit_paise: limitPaise,
+      ...(limitPaise > previousLimitPaise ? { alert_80_sent: 0, alert_100_sent: 0 } : {}),
+    });
+  }
+
   async findForCategory(categoryId: string, month: string): Promise<BudgetRow | null> {
     return this.db.getOptional<BudgetRow>(
       `SELECT * FROM budgets ${this.liveWhere('category_id = ? AND month = ?')}`,

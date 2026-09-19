@@ -3,9 +3,14 @@ import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Switch, Text, View } from 'react-native';
 
-import { Button, Card, ListItem, Screen } from '@/components';
+import { Button, Card, ListItem, Screen, useToast } from '@/components';
+import { requestPermission } from '@/features/budgets/notifications';
 import { signOutEverywhere, useAuthStore } from '@/features/auth';
-import { selectPrivacyMode, useSettingsStore } from '@/stores/settings-store';
+import {
+  selectBudgetAlertsEnabled,
+  selectPrivacyMode,
+  useSettingsStore,
+} from '@/stores/settings-store';
 import { useTheme } from '@/theme';
 
 export default function SettingsScreen() {
@@ -16,6 +21,36 @@ export default function SettingsScreen() {
   const profile = useAuthStore((state) => state.profile);
   const email = useAuthStore((state) => state.user?.email ?? null);
   const [signingOut, setSigningOut] = useState(false);
+  const toast = useToast();
+  const budgetAlerts = useSettingsStore(selectBudgetAlertsEnabled);
+  const setBudgetAlerts = useSettingsStore((state) => state.setBudgetAlertsEnabled);
+
+  /**
+   * Notification permission is requested here, when the user turns alerts on -
+   * never at launch. A prompt with no context is the one people deny for good,
+   * and iOS only asks once.
+   */
+  const toggleBudgetAlerts = async (enabled: boolean) => {
+    if (!enabled) {
+      setBudgetAlerts(false);
+      return;
+    }
+
+    const state = await requestPermission();
+    if (state === 'granted') {
+      setBudgetAlerts(true);
+      toast.show('Budget alerts are on', { tone: 'success' });
+      return;
+    }
+
+    setBudgetAlerts(false);
+    toast.show(
+      state === 'denied'
+        ? 'Notifications are turned off for FinPilot. Turn them on in your phone settings.'
+        : 'Budget alerts need notification permission.',
+      { tone: 'warning' },
+    );
+  };
 
   const chevron = <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />;
 
@@ -36,6 +71,29 @@ export default function SettingsScreen() {
 
       <Card padded={false}>
         <View style={{ paddingHorizontal: theme.spacing.lg }}>
+          <ListItem
+            title="Goals"
+            subtitle="What you're saving for"
+            leading={<Ionicons name="flag-outline" size={22} color={theme.colors.primary} />}
+            trailing={chevron}
+            onPress={() => router.push('/goals')}
+            showDivider
+          />
+          <ListItem
+            title="Budget alerts"
+            subtitle="Tell me at 80% and when a budget is used up"
+            leading={
+              <Ionicons name="notifications-outline" size={22} color={theme.colors.primary} />
+            }
+            trailing={
+              <Switch
+                accessibilityLabel="Toggle budget alerts"
+                value={budgetAlerts}
+                onValueChange={(next) => void toggleBudgetAlerts(next)}
+              />
+            }
+            showDivider
+          />
           <ListItem
             title="Accounts"
             subtitle="Balances, archive and opening balances"

@@ -36,6 +36,8 @@ app/                  Expo Router routes. Thin screens only.
   (lock)/             App lock screen.
   (tabs)/             Home, Transactions, Add (centre button), Budgets, Reports.
   accounts/           Account list, detail and form.
+  budgets/            Budget form (the tab shows the month).
+  goals/              Goal list, detail and form.
   transactions/       Transaction detail and edit.
   categories/         Category list and form.
   recurring/          Repeating transaction management.
@@ -117,6 +119,16 @@ npm run db:types     # regenerate src/db/database.types.ts
   is `uuidv5(ruleId + ':' + occurrenceISO, RECURRING_NAMESPACE)`, so two offline
   devices generating the same occurrence produce the same row. That namespace
   must never change.
+- **Budget thresholds and goal projections live in `src/features/budgets/*`
+  and `src/features/goals/*`.** The 80/100 bands are defined once in `toneFor`,
+  and an alert fires at most once per budget per threshold per month - the
+  `alert_80_sent` / `alert_100_sent` columns are the record of that, and they
+  sync, so a second device stays quiet. Write the flag only after delivery
+  succeeds. A projection with nothing to project from returns null rather than
+  a fabricated date.
+- **Notification permission is requested in context**, when the user turns
+  alerts on - never at launch. iOS asks once, and a prompt with no context is
+  the one people deny for good.
 - **Every new util, hook and calculation gets unit tests.**
 - **Every interactive element has an `accessibilityLabel`** (and an appropriate
   `accessibilityRole`), a **44pt minimum touch target** (directly or via

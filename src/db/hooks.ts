@@ -184,6 +184,10 @@ export function useBudgetsRepository(): BudgetsRepository | null {
   return useRepository((context) => new BudgetsRepository(context));
 }
 
+export function useBudgetProgressForMonth(month: string) {
+  return useBudgetProgress(month);
+}
+
 export function useGoalsRepository(): GoalsRepository | null {
   return useRepository((context) => new GoalsRepository(context));
 }

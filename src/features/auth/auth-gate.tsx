@@ -3,6 +3,8 @@ import { useRouter, useSegments } from 'expo-router';
 import { useEffect, useMemo, type ReactNode } from 'react';
 
 import { getPowerSync } from '@/db/powersync';
+import { useBudgetAlerts } from '@/features/budgets/use-budget-alerts';
+import { configureNotificationHandler } from '@/features/budgets/notifications';
 import { useRecurringGeneration } from '@/features/recurring/use-recurring-generation';
 import { useSyncLifecycle } from '@/features/sync/use-sync-lifecycle';
 
@@ -23,6 +25,10 @@ import { useAuthBootstrap, useProfileSync } from './use-auth';
  * profile, runs the app-lock lifecycle, and redirects according to
  * `resolveRedirect` - which is pure and unit tested in routing.test.ts.
  */
+// How a notification behaves when it lands while the app is open. Set once,
+// at module scope, rather than on every render.
+configureNotificationHandler();
+
 export function AuthGate({ children }: { children: ReactNode }) {
   useAuthBootstrap();
   useProfileSync();
@@ -31,6 +37,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useSyncLifecycle();
   // Repeating transactions that fell due while the app was closed.
   useRecurringGeneration();
+  // Budget thresholds crossed since the last check.
+  useBudgetAlerts();
 
   const router = useRouter();
   const segments = useSegments();

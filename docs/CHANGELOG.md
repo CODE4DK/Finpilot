@@ -3,6 +3,53 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 6] - 2026-09-19 - Budgets, alerts and savings goals
+
+### Added
+
+- **Budget maths** (`src/features/budgets/budget-math.ts`): spent against
+  limit, the green/amber/red bands defined once in `toneFor`, days left in the
+  month (counting today, so it is never 0 and the daily division cannot blow
+  up), safe-to-spend-per-day, spending pace, and a whole-month summary.
+- **Budgets tab**: a ring with the month's percentage, days left and safe per
+  day, then a bar per category with its percentage, limit and pace. The
+  percentage appears next to every bar and in its accessibility label - colour
+  is never the only signal.
+- **Copy last month's budgets** (`BudgetsRepository.copyFrom`): skips
+  categories already budgeted in the target month, so running it twice adds
+  nothing and an adjusted budget is never overwritten. Copies start with clear
+  alert flags.
+- **Budget alerts** via expo-notifications, fired once per budget per threshold
+  per month. The `alert_80_sent` / `alert_100_sent` columns are what enforce
+  that, and because they sync, a second device stays quiet too. A budget that
+  jumps straight past both bands announces only the 100% crossing. Flags are
+  written **after** delivery, so a revoked permission does not silently burn
+  the one alert a budget gets. Raising a limit clears them.
+- **Permission asked in context** - when the user turns alerts on in Settings,
+  never at launch. If the OS has stopped asking, the copy points at phone
+  settings rather than pretending the toggle will work.
+- **Goals**: create (name, target, optional date, icon), add contributions
+  optionally attributed to an account, a progress ring, the required monthly
+  saving to hit the date, a projected completion from the rate so far, and a
+  celebration on the transition into completeness that also writes the status
+  back.
+- **Tests** (+130, 984 total): the tone bands at their exact boundaries, days
+  left across month lengths and leap years, safe-per-day including the
+  last-day and over-budget cases, alert thresholds including the
+  jumped-past-both case and the no-repeat guarantee, the permission state
+  machine, copy-forward idempotency, and goal projections including the
+  honest nulls.
+
+### Notes
+
+- Required monthly saving is arithmetic; projected completion is a guess from
+  the contribution rate and is labelled as one. With no contributions the
+  projection is **null** rather than a fabricated date - the screen says "add a
+  contribution to see your pace".
+- The average contribution rate is measured from the first contribution, not
+  from when the goal was created: a goal made in January and first funded in
+  June has a six-month history, not a one-month one.
+
 ## [Unreleased]
 
 ### Fixed

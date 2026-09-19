@@ -122,6 +122,17 @@ jest.mock('expo-local-authentication', () => ({
   authenticateAsync: jest.fn(async () => ({ success: false, error: 'user_cancel' })),
 }));
 
+// Notifications are native; the alert *decisions* are tested as pure
+// functions, and this keeps the delivery path from exploding under Jest.
+jest.mock('expo-notifications', () => ({
+  AndroidImportance: { DEFAULT: 3, HIGH: 4 },
+  getPermissionsAsync: jest.fn(async () => ({ status: 'undetermined', canAskAgain: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  setNotificationChannelAsync: jest.fn(async () => {}),
+  scheduleNotificationAsync: jest.fn(async () => 'notification-id'),
+  setNotificationHandler: jest.fn(),
+}));
+
 jest.mock('expo-screen-capture', () => ({
   preventScreenCaptureAsync: jest.fn(async () => {}),
   allowScreenCaptureAsync: jest.fn(async () => {}),

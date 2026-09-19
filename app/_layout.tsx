@@ -28,6 +28,8 @@ function RootStack() {
         <Stack.Screen name="(lock)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="accounts" options={{ headerShown: false }} />
         <Stack.Screen name="transactions" options={{ headerShown: false }} />
+        <Stack.Screen name="budgets" options={{ headerShown: false }} />
+        <Stack.Screen name="goals" options={{ headerShown: false }} />
         <Stack.Screen name="categories" options={{ headerShown: false }} />
         <Stack.Screen name="recurring" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />

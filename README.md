@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 5 — accounts, transactions and recurring entries.
+> **Status:** Phase 6 — budgets, alerts and savings goals.
 
 ## Stack
 

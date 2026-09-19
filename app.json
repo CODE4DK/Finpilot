@@ -37,6 +37,13 @@
         {
           "faceIDPermission": "Allow FinPilot to unlock with Face ID."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#0B6B62",
+          "defaultChannel": "budget-alerts"
+        }
       ]
     ],
     "experiments": {
