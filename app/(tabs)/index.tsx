@@ -5,6 +5,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AmountText, Button, Card, EmptyState, Screen, TransactionRow } from '@/components';
 import { useSyncSummary, useTransactionTotals } from '@/db/hooks';
+import {
+  InsightCard,
+  resolveInsight,
+  useRuleBasedInsight,
+  useStoredInsight,
+} from '@/features/insights';
 import { useAccountsWithBalances } from '@/features/accounts';
 import { monthPeriod } from '@/features/ledger/period';
 import { SyncIndicator, SyncStatusSheet } from '@/features/sync';
@@ -24,6 +30,12 @@ export default function HomeScreen() {
   const totals = useTransactionTotals(period.from, period.to);
   const { netWorth } = useAccountsWithBalances();
   const { rows } = useTransactionList({ limit: 5 });
+
+  // Always something to show: the AI insight when there is one for the month,
+  // the on-device rules otherwise - and the card says which it is.
+  const storedInsight = useStoredInsight();
+  const ruleInsight = useRuleBasedInsight();
+  const insight = resolveInsight(storedInsight, ruleInsight);
 
   const monthTotals = totals.data[0] ?? { income_paise: 0, expense_paise: 0 };
   const monthName = new Date().toLocaleDateString('en-IN', { month: 'long' });
@@ -97,6 +109,12 @@ export default function HomeScreen() {
           </View>
         </View>
       </Card>
+
+      <InsightCard
+        insight={insight}
+        onPress={() => router.push('/insights')}
+        testID="home-insight-card"
+      />
 
       <Button
         label="Add transaction"

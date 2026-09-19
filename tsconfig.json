@@ -13,5 +13,14 @@
     "types": ["jest", "node"]
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules", "dist", ".expo"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".expo",
+    // Deno, not React Native: npm: specifiers, .ts import paths and the Deno
+    // global. Type-checked with `deno check` (see docs/AI_INSIGHTS.md); the
+    // pure modules the app's tests import are still checked, because tsc
+    // follows them in from the test files.
+    "supabase/functions"
+  ]
 }

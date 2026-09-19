@@ -79,6 +79,7 @@
     "react-dom": "^19.2.3",
     "react-test-renderer": "^19.2.3",
     "supabase": "^2.117.0",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "zod": "^3.25.76"
   }
 }

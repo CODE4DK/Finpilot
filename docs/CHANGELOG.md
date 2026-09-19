@@ -3,6 +3,64 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 8] - 2026-09-19 - AI insights via edge function
+
+### Added
+
+- **`generate-insights` Edge Function** (Deno, TypeScript): verifies the
+  caller's JWT, checks `profiles.ai_insights_opt_in` server-side, rate-limits
+  to 5 generations per user per day, builds an aggregated payload, calls
+  `claude-opus-5` with structured outputs, validates the answer with zod and
+  stores it in `insights`. The checks run in that order, so a caller who fails
+  any of them costs nothing and reads nothing.
+- **A payload that carries aggregates and category names, and nothing else.**
+  No notes, no account names, no ids, no email, no individual transactions.
+  Goal names never leave the device either: the model sees `goal_1` and the
+  function substitutes the real name back into the answer before storing it.
+- **`ai_insight_requests`**: one row per call, succeeded or not - the rate
+  limit counts attempts, because a failing call still costs a call to the
+  model. Server-side only: RLS enabled with no policies, every privilege
+  revoked from client roles, not in the PowerSync publication.
+- **`ai_insight_aggregates(user_id, month)`**: a `SECURITY DEFINER` function,
+  executable only by the service role, that is the one statement the function
+  runs against a user's data.
+- **Insights card on Home and a full Insights screen**, with a month selector,
+  loading, error and offline states, and the cached last result shown
+  instantly - it is an ordinary synced row.
+- **A consent screen** listing, in plain words, exactly what is sent and what
+  never is. The list is the literal contents of the payload builder, not a
+  paraphrase of a policy.
+- **Rule-based insights computed on the device** as the fallback when offline,
+  not opted in, or out of generations: totals against last month, the largest
+  category, the daily pace and where it lands, categories materially up,
+  budgets over or pacing over, and what a goal still needs.
+- **Tests** (+59, 1121 total): the payload builder fed rows carrying notes,
+  account names, goal names and an email, asserting none of it survives - and
+  every key at every depth checked against an allow-list; the zod validation of
+  malformed, oversized and hostile responses; the fallback rules including the
+  two thresholds that stop it manufacturing a trend. Plus 23 new pgTAP
+  assertions covering the log's lockdown and what the aggregation may read.
+
+### Notes
+
+- **Category names are the one deliberate exception** to "no free text". They
+  are the analysis - "you spent more on Food" is not sayable without the word
+  Food - and the seventeen defaults are generic, but a custom category name is
+  text a user typed. That trade-off is stated on the consent screen in those
+  terms rather than buried.
+- The app always says which kind of insight is on screen: an `AI` or
+  `On device` badge. A sentence written by a model and a sentence computed
+  from arithmetic deserve different amounts of trust, and that is the user's
+  call.
+- A validation failure is recorded with **issue paths only** - never the
+  model's text, which carries the user's figures - and the app falls back to
+  the on-device rules rather than rendering something half-valid.
+- `ANTHROPIC_API_KEY` lives in Supabase secrets. Only `EXPO_PUBLIC_*`
+  variables reach the client, and a key in an app bundle is a published key.
+- The Edge Function is excluded from the app's `tsconfig.json` - it is Deno.
+  `payload.ts` and `schema.ts` import nothing from Deno precisely so the app's
+  Jest suite can import and test them.
+
 ## [Phase 7] - 2026-09-19 - Reports, charts and CSV export
 
 ### Added

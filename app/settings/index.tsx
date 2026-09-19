@@ -95,6 +95,14 @@ export default function SettingsScreen() {
             showDivider
           />
           <ListItem
+            title="AI insights"
+            subtitle="A written read on your month, and exactly what it sends"
+            leading={<Ionicons name="sparkles-outline" size={22} color={theme.colors.primary} />}
+            trailing={chevron}
+            onPress={() => router.push('/insights/consent')}
+            showDivider
+          />
+          <ListItem
             title="Accounts"
             subtitle="Balances, archive and opening balances"
             leading={<Ionicons name="wallet-outline" size={22} color={theme.colors.primary} />}

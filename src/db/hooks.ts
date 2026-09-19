@@ -196,6 +196,10 @@ export function useGoalContributionsRepository(): GoalContributionsRepository | 
   return useRepository((context) => new GoalContributionsRepository(context));
 }
 
+export function useProfilesRepository(): ProfilesRepository | null {
+  return useRepository((context) => new ProfilesRepository(context));
+}
+
 export function useRecurringRulesRepository(): RecurringRulesRepository | null {
   return useRepository((context) => new RecurringRulesRepository(context));
 }

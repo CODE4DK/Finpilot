@@ -308,6 +308,25 @@ project.
 | `supabase/tests/01_rls.test.sql`    | 54 assertions: user A cannot read, update, re-own or reference user B's rows; no hard deletes; anon is locked out; soft deletes work and stay visible to their owner                       |
 | `supabase/tests/02_schema.test.sql` | 57 assertions: the new-user trigger, the seeded category set, amount and transfer CHECKs, enumerated values, month-keyed uniqueness, the `updated_at` trigger, indexes and the publication |
 
+| `supabase/tests/03_conflict_resolution.test.sql` | last write wins by `updated_at`: stale writes skipped, clock skew clamped, stale deletes ignored |
+| `supabase/tests/04_ai_insights.test.sql` | the AI request log is server-side only: RLS on with no policies, no client privileges, not replicated |
+| `supabase/tests/05_ai_insight_aggregates.test.sql` | the AI aggregation returns the right figures and **no** notes, account names, transfers or other users' rows; a client cannot call it |
+
+## Server-side-only objects
+
+Two objects exist for the AI insights feature and are deliberately outside the
+sync path (see [AI_INSIGHTS.md](./AI_INSIGHTS.md)):
+
+- **`ai_insight_requests`** — one row per `generate-insights` call: the rate
+  limit and the audit trail. Not in the `powersync` publication, RLS enabled
+  with **no policies**, every privilege revoked from `anon` and
+  `authenticated`. Only the service role touches it.
+- **`ai_insight_aggregates(user_id, month)`** — a `SECURITY DEFINER` function
+  with a pinned `search_path`, `EXECUTE` granted only to `service_role`. It is
+  the single statement the Edge Function runs against a user's data, so what
+  the feature may read is visible in the schema rather than spread through a
+  handler.
+
 ## Types
 
 `src/db/database.types.ts` is generated from the live schema — do not edit it.

@@ -76,6 +76,17 @@ export function createFakeSupabase(options: FakeSupabaseOptions = {}) {
       stopAutoRefresh: jest.fn(async () => {}),
     },
     from: jest.fn(() => query),
+
+    /**
+     * Edge Functions. The default is a success; a test that cares about the
+     * failure paths replaces the implementation.
+     */
+    functions: {
+      invoke: jest.fn<Promise<{ data: unknown; error: unknown }>, [string, unknown?]>(async () => ({
+        data: { month: null, insight: null },
+        error: null,
+      })),
+    },
     /** Push a session change the way supabase-js would. */
     __emit(next: Session | null) {
       session = next;

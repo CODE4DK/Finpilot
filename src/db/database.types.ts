@@ -60,6 +60,51 @@ export interface Database {
           },
         ];
       };
+      /** One row per generate-insights call. Server-side only: the rate limit and the audit trail for the AI feature. */
+      ai_insight_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          month: string;
+          requested_at: string;
+          status: string;
+          model: string | null;
+          input_tokens: number | null;
+          output_tokens: number | null;
+          detail: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          month: string;
+          requested_at?: string;
+          status: string;
+          model?: string | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          detail?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          month?: string;
+          requested_at?: string;
+          status?: string;
+          model?: string | null;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          detail?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ai_insight_requests_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       budgets: {
         Row: {
           id: string;
