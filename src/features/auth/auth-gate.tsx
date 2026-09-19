@@ -3,6 +3,7 @@ import { useRouter, useSegments } from 'expo-router';
 import { useEffect, useMemo, type ReactNode } from 'react';
 
 import { getPowerSync } from '@/db/powersync';
+import { useRecurringGeneration } from '@/features/recurring/use-recurring-generation';
 import { useSyncLifecycle } from '@/features/sync/use-sync-lifecycle';
 
 import { useAppLockStore } from '@/features/app-lock/app-lock-store';
@@ -28,6 +29,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useAppLockLifecycle();
   useSecureFlagWhileLocked();
   useSyncLifecycle();
+  // Repeating transactions that fell due while the app was closed.
+  useRecurringGeneration();
 
   const router = useRouter();
   const segments = useSegments();

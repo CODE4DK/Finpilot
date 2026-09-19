@@ -6,6 +6,7 @@ import {
   View,
   type StyleProp,
   type TextInputProps as RNTextInputProps,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 
@@ -21,7 +22,7 @@ export interface TextInputProps extends Omit<RNTextInputProps, 'style'> {
   leading?: ReactNode;
   trailing?: ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
-  inputStyle?: StyleProp<ViewStyle>;
+  inputStyle?: StyleProp<TextStyle>;
 }
 
 export const TextInput = forwardRef<RNTextInput, TextInputProps>(function TextInput(

@@ -3,6 +3,77 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 5] - 2026-09-19 - Accounts, transactions and recurring entries
+
+### Added
+
+- **Ledger logic** (`src/features/ledger/`), pure and tested: account
+  balances, net worth (assets and liabilities separated), period totals, and
+  day grouping with per-day totals flattened for a virtual list. A transfer
+  moves money between two accounts and nets to zero across them, so it counts
+  in neither income nor expense.
+- **Period boundaries** (`period.ts`): local day and month windows expressed as
+  half-open UTC ranges, so a month filter is `[1st, next 1st)` with no gap or
+  overlap. `npm run test:timezones` runs the suite under IST, UTC, New York and
+  Chatham, including both DST transitions.
+- **Recurring schedule** (`recurring/schedule.ts`): an **anchor day** keeps a
+  monthly rule from drifting - 31 Jan → 28 Feb → **31** Mar, not 3 Mar and then
+  the 3rd forever. Yearly rules on 29 February clamp to the 28th and return to
+  the 29th at the next leap year.
+- **Deterministic generation** (`recurring/generate.ts`): an occurrence's id is
+  `uuidv5(ruleId + ':' + occurrenceISO)`, so two offline devices generating the
+  same occurrence produce byte-identical rows and the upload converges to one.
+  Catch-up runs on launch and on foreground, capped at 200 occurrences so a
+  long-abandoned rule cannot hang the launch, and retires a rule past its end
+  date.
+- **Add screen**: type toggle, large amount input, category grid ordered
+  recently-used-first, account picker, date/time defaulting to now, note and
+  Repeat. The design target - an expense saved in **two taps** after the amount
+  is typed - is expressed as `remainingTapsToSave` and asserted in tests rather
+  than claimed.
+- **Transactions list**: FlashList grouped by day with daily totals, search by
+  note, filters (date range, type, account, category), and swipe to edit or
+  delete with an **Undo** toast that re-inserts the row under its original id.
+- **Accounts**: list with live balances and a net-worth card, detail with the
+  account's transactions, add/edit, and archive (never delete - history keeps
+  its account).
+- **Categories**: add, edit and archive. Seeded defaults can be renamed or
+  archived but never deleted, and the refusal explains why and offers archiving.
+- **Recurring management**: list with pause/resume and delete, which keeps the
+  transactions already generated.
+- **Home**: net worth, this month's income and spend, the last five
+  transactions and a quick add - all reading from the local database.
+- **Components**: `SegmentedControl`, `CategoryGrid`, `SwipeRow`,
+  `TransactionRow`, and a toast that can carry a single action (Undo).
+- **Tests** (+245, 845 total): balances including transfers and deletes, period
+  and DST boundaries, month-end recurrence across a full year, deterministic
+  id stability, the draft state machine and tap budget, category ordering and
+  the delete rules, the generation runner, and screen tests covering the list,
+  the two-tap path, swipe actions and Undo.
+
+### Changed
+
+- The home and transactions screens now read real data instead of the Phase 1
+  placeholders.
+- `CategoryIcon` accepts a glyph name, which is what `categories.icon` stores.
+- Jest mocks `react-native-gesture-handler/ReanimatedSwipeable`: Reanimated's
+  own mock imports the real library, which needs the native worklets module.
+  The gesture is not unit-testable either way; the mock renders the row and its
+  actions so both stay covered.
+- The test double for PowerSync now implements the watched-query contract
+  (`customQuery().watch()`, `updateSettings`, listeners), so screen tests
+  exercise the same reactive path the app uses.
+
+### Notes
+
+- Conflict resolution stays per row (Phase 4): two edits to different fields of
+  the same transaction still means one is lost.
+- Day grouping uses the **device** timezone, not `profiles.timezone`. Hermes on
+  Android ships a trimmed ICU, so an arbitrary `timeZone` cannot be relied on
+  for the grouping path on device - a suite that passed in Node would be wrong
+  on a phone. Correct for a user at home; wrong for one who travels and expects
+  home-time grouping.
+
 ## [Phase 4] - 2026-09-19 - Offline-first sync with PowerSync
 
 ### Added

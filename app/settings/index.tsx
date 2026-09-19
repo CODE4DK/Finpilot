@@ -37,6 +37,30 @@ export default function SettingsScreen() {
       <Card padded={false}>
         <View style={{ paddingHorizontal: theme.spacing.lg }}>
           <ListItem
+            title="Accounts"
+            subtitle="Balances, archive and opening balances"
+            leading={<Ionicons name="wallet-outline" size={22} color={theme.colors.primary} />}
+            trailing={chevron}
+            onPress={() => router.push('/accounts')}
+            showDivider
+          />
+          <ListItem
+            title="Categories"
+            subtitle="Add, rename and archive"
+            leading={<Ionicons name="pricetags-outline" size={22} color={theme.colors.primary} />}
+            trailing={chevron}
+            onPress={() => router.push('/categories')}
+            showDivider
+          />
+          <ListItem
+            title="Repeating"
+            subtitle="Rent, subscriptions and salary"
+            leading={<Ionicons name="repeat-outline" size={22} color={theme.colors.primary} />}
+            trailing={chevron}
+            onPress={() => router.push('/recurring')}
+            showDivider
+          />
+          <ListItem
             title="Security"
             subtitle="App lock, PIN and biometrics"
             leading={<Ionicons name="lock-closed-outline" size={22} color={theme.colors.primary} />}

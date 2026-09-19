@@ -34,7 +34,14 @@ const SIZES: Record<CategoryIconSize, { container: number; glyph: number }> = {
 };
 
 export interface CategoryIconProps {
-  category: CategoryKey;
+  /** One of the built-in keys. Ignored when `glyph` is given. */
+  category?: CategoryKey;
+  /**
+   * An Ionicons glyph name, which is what `categories.icon` stores - the
+   * seeded rows carry 'restaurant-outline' and the like, and a user's own
+   * category can carry anything.
+   */
+  glyph?: string | null;
   size?: CategoryIconSize;
   /** Tint, e.g. income green for a salary row. Defaults to the brand teal. */
   color?: string;
@@ -45,7 +52,8 @@ export interface CategoryIconProps {
 }
 
 export function CategoryIcon({
-  category,
+  category = 'other',
+  glyph,
   size = 'md',
   color,
   backgroundColor,
@@ -53,7 +61,7 @@ export function CategoryIcon({
   testID,
 }: CategoryIconProps) {
   const theme = useTheme();
-  const { container, glyph } = SIZES[size];
+  const { container, glyph: glyphSize } = SIZES[size];
   const decorative = accessibilityLabel === undefined;
 
   return (
@@ -75,12 +83,23 @@ export function CategoryIcon({
       ]}
     >
       <Ionicons
-        name={CATEGORY_ICONS[category]}
-        size={glyph}
+        name={resolveGlyph(glyph, category)}
+        size={glyphSize}
         color={color ?? theme.colors.primary}
       />
     </View>
   );
+}
+
+/** Falls back to the built-in map, then to a neutral glyph. */
+function resolveGlyph(
+  glyph: string | null | undefined,
+  category: CategoryKey,
+): keyof typeof Ionicons.glyphMap {
+  if (glyph && glyph in Ionicons.glyphMap) {
+    return glyph as keyof typeof Ionicons.glyphMap;
+  }
+  return CATEGORY_ICONS[category];
 }
 
 const styles = StyleSheet.create({

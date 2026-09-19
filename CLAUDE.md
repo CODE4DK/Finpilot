@@ -35,6 +35,10 @@ app/                  Expo Router routes. Thin screens only.
   (onboarding)/       First-run wizard.
   (lock)/             App lock screen.
   (tabs)/             Home, Transactions, Add (centre button), Budgets, Reports.
+  accounts/           Account list, detail and form.
+  transactions/       Transaction detail and edit.
+  categories/         Category list and form.
+  recurring/          Repeating transaction management.
   settings/           Settings stack.
   dev/                Development-only screens (__DEV__ guarded).
 src/
@@ -62,6 +66,7 @@ npm run lint:fix     # ESLint with --fix
 npm run typecheck    # tsc --noEmit
 npm test             # Jest
 npm run test:watch   # Jest in watch mode
+npm run test:timezones # the period suite under four timezones
 npm run format       # Prettier --write
 npm run format:check # Prettier --check
 
@@ -102,6 +107,16 @@ npm run db:types     # regenerate src/db/database.types.ts
   thin and only compose components and feature hooks.
 - **No secrets in the app bundle.** Only `EXPO_PUBLIC_*` variables reach the
   client. Anything privileged belongs in a Supabase Edge Function.
+- **Balance and aggregation logic lives in `src/features/ledger/*`,** never in
+  a screen or a component: account balances, net worth, period totals and day
+  grouping are pure functions with unit tests. A transfer moves money between
+  two accounts and nets to zero across them, so it counts in neither income nor
+  expense. Day grouping uses the device's local timezone — see
+  `src/features/ledger/README.md` for why, and `npm run test:timezones`.
+- **Generated transactions use deterministic ids.** A recurring occurrence's id
+  is `uuidv5(ruleId + ':' + occurrenceISO, RECURRING_NAMESPACE)`, so two offline
+  devices generating the same occurrence produce the same row. That namespace
+  must never change.
 - **Every new util, hook and calculation gets unit tests.**
 - **Every interactive element has an `accessibilityLabel`** (and an appropriate
   `accessibilityRole`), a **44pt minimum touch target** (directly or via

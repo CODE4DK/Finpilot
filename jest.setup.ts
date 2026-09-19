@@ -39,6 +39,44 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+/**
+ * Swipeable rows.
+ *
+ * Reanimated's own mock imports the real library, which needs the native
+ * worklets module, so it cannot be used here. The gesture itself is not
+ * testable in a unit test either way - what matters is that the row's content
+ * and its actions render, so this renders both without any animation. The
+ * swipe gesture is covered by the Maestro suite instead.
+ */
+jest.mock('react-native-gesture-handler/ReanimatedSwipeable', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- jest.mock factories are hoisted above imports.
+  const React = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- as above.
+  const { View } = require('react-native');
+
+  return {
+    __esModule: true,
+    default: ({
+      children,
+      renderLeftActions,
+      renderRightActions,
+      testID,
+    }: {
+      children: React.ReactNode;
+      renderLeftActions?: () => React.ReactNode;
+      renderRightActions?: () => React.ReactNode;
+      testID?: string;
+    }) =>
+      React.createElement(
+        View,
+        { testID },
+        children,
+        renderLeftActions ? React.createElement(renderLeftActions) : null,
+        renderRightActions ? React.createElement(renderRightActions) : null,
+      ),
+  };
+});
+
 // The local database itself. op-sqlite cannot open a database under Jest, so
 // every test gets a fake instance; the repositories - where the logic lives -
 // are tested directly against `createMockDatabase` instead.

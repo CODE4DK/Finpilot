@@ -82,6 +82,32 @@ export class AccountsRepository extends BaseRepository<AccountRow, AccountInsert
     };
   }
 
+  /** Balances for every account in one query, for the list and net worth. */
+  balancesQuery(): { sql: string; parameters: unknown[] } {
+    return {
+      sql: `
+        SELECT
+          a.*,
+          a.opening_balance_paise
+          + COALESCE((
+              SELECT SUM(CASE t.type WHEN 'income' THEN t.amount_paise ELSE -t.amount_paise END)
+              FROM transactions t
+              WHERE t.account_id = a.id AND t.user_id = a.user_id AND t.deleted_at IS NULL
+            ), 0)
+          + COALESCE((
+              SELECT SUM(t.amount_paise)
+              FROM transactions t
+              WHERE t.to_account_id = a.id AND t.user_id = a.user_id AND t.deleted_at IS NULL
+            ), 0)
+          AS balance_paise
+        FROM accounts a
+        WHERE a.user_id = ? AND a.deleted_at IS NULL
+        ORDER BY a.is_archived ASC, a.name COLLATE NOCASE ASC
+      `,
+      parameters: [this.userId],
+    };
+  }
+
   async balance(accountId: string): Promise<number> {
     const { sql, parameters } = this.balanceQuery(accountId);
     const row = await this.db.getOptional<{ balance_paise: number }>(sql, parameters);

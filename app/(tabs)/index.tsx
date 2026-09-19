@@ -1,44 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import { useState } from 'react';
+import { Link, useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AmountText, Card, CategoryIcon, Chip, ListItem, ProgressBar, Screen } from '@/components';
-import { useSyncSummary } from '@/db/hooks';
+import { AmountText, Button, Card, EmptyState, Screen, TransactionRow } from '@/components';
+import { useSyncSummary, useTransactionTotals } from '@/db/hooks';
+import { useAccountsWithBalances } from '@/features/accounts';
+import { monthPeriod } from '@/features/ledger/period';
 import { SyncIndicator, SyncStatusSheet } from '@/features/sync';
+import { useTransactionList } from '@/features/transactions/use-transaction-list';
 import { selectPrivacyMode, useSettingsStore } from '@/stores/settings-store';
 import { useTheme } from '@/theme';
 
-/** Placeholder rows; the reactive queries land with the screens in Phase 5. */
-const SAMPLE_ROWS = [
-  {
-    id: '1',
-    title: 'Big Bazaar',
-    subtitle: 'Groceries · Today',
-    paise: -184550,
-    category: 'groceries',
-  },
-  { id: '2', title: 'Salary', subtitle: 'Income · 1 Sep', paise: 8500000, category: 'salary' },
-  {
-    id: '3',
-    title: 'Uber',
-    subtitle: 'Transport · Yesterday',
-    paise: -24900,
-    category: 'transport',
-  },
-] as const;
-
 export default function HomeScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const privacyMode = useSettingsStore(selectPrivacyMode);
   const togglePrivacyMode = useSettingsStore((state) => state.togglePrivacyMode);
   const syncSummary = useSyncSummary();
   const [syncSheetOpen, setSyncSheetOpen] = useState(false);
 
+  const period = useMemo(() => monthPeriod(new Date()), []);
+  const totals = useTransactionTotals(period.from, period.to);
+  const { netWorth } = useAccountsWithBalances();
+  const { rows } = useTransactionList({ limit: 5 });
+
+  const monthTotals = totals.data[0] ?? { income_paise: 0, expense_paise: 0 };
+  const monthName = new Date().toLocaleDateString('en-IN', { month: 'long' });
+
   return (
     <Screen accessibilityLabel="Home screen" scrollable>
       <View style={styles.headerRow}>
-        <Text style={[theme.typography.title, { color: theme.colors.text }]}>Hello</Text>
+        <Text style={[theme.typography.title, { color: theme.colors.text }]}>FinPilot</Text>
         <View style={[styles.headerActions, { gap: theme.spacing.sm }]}>
           <SyncIndicator summary={syncSummary} onPress={() => setSyncSheetOpen(true)} />
           <Pressable
@@ -68,10 +61,8 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <Card accessibilityLabel="Balance summary">
-        <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
-          Total balance
-        </Text>
+      <Card accessibilityLabel="Balance summary" onPress={() => router.push('/accounts')}>
+        <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>Net worth</Text>
         {privacyMode ? (
           <Text
             accessibilityLabel="Balance hidden by privacy mode"
@@ -80,53 +71,76 @@ export default function HomeScreen() {
             ••••••
           </Text>
         ) : (
-          <AmountText amountPaise={12456700} size="large" />
+          <AmountText amountPaise={netWorth.totalPaise} size="large" />
         )}
-        <View style={[styles.summaryRow, { gap: theme.spacing.lg, marginTop: theme.spacing.md }]}>
+
+        <View style={[styles.summaryRow, { gap: theme.spacing.xl, marginTop: theme.spacing.md }]}>
           <View>
             <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
-              Income
+              {monthName} income
             </Text>
-            <AmountText amountPaise={8500000} size="small" colorBySign />
+            {privacyMode ? (
+              <Text style={[theme.typography.amountSmall, { color: theme.colors.text }]}>•••</Text>
+            ) : (
+              <AmountText amountPaise={monthTotals.income_paise} size="small" colorBySign />
+            )}
           </View>
           <View>
-            <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>Spent</Text>
-            <AmountText amountPaise={-3245600} size="small" colorBySign />
+            <Text style={[theme.typography.caption, { color: theme.colors.textMuted }]}>
+              {monthName} spend
+            </Text>
+            {privacyMode ? (
+              <Text style={[theme.typography.amountSmall, { color: theme.colors.text }]}>•••</Text>
+            ) : (
+              <AmountText amountPaise={-monthTotals.expense_paise} size="small" colorBySign />
+            )}
           </View>
         </View>
       </Card>
 
-      <View style={[styles.chipRow, { gap: theme.spacing.sm }]}>
-        <Chip label="This month" selected onPress={() => {}} />
-        <Chip label="Last month" onPress={() => {}} />
-        <Chip label="Custom" onPress={() => {}} />
+      <Button
+        label="Add transaction"
+        fullWidth
+        onPress={() => router.push('/(tabs)/add')}
+        leading={<Ionicons name="add" size={20} color={theme.colors.onPrimary} />}
+      />
+
+      <View style={styles.headerRow}>
+        <Text style={[theme.typography.heading, { color: theme.colors.text }]}>Recent</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="See all transactions"
+          hitSlop={12}
+          onPress={() => router.push('/(tabs)/transactions')}
+          style={{ minHeight: theme.minTouchTarget, justifyContent: 'center' }}
+        >
+          <Text style={[theme.typography.label, { color: theme.colors.primary }]}>See all</Text>
+        </Pressable>
       </View>
 
-      <Card accessibilityLabel="Monthly budget progress">
-        <ProgressBar
-          progress={0.62}
-          label="Monthly budget"
-          autoTone
-          accessibilityLabel="Monthly budget used"
+      {rows.length === 0 ? (
+        <EmptyState
+          icon="receipt-outline"
+          title="No transactions yet"
+          description="Add your first one and it will show up here."
+          actionLabel="Add transaction"
+          onAction={() => router.push('/(tabs)/add')}
         />
-      </Card>
+      ) : (
+        <Card padded={false}>
+          <View style={{ paddingHorizontal: theme.spacing.lg }}>
+            {rows.slice(0, 5).map((transaction, index) => (
+              <TransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                onPress={() => router.push(`/transactions/${transaction.id}`)}
+                showDivider={index < Math.min(rows.length, 5) - 1}
+              />
+            ))}
+          </View>
+        </Card>
+      )}
 
-      <Text style={[theme.typography.heading, { color: theme.colors.text }]}>Recent</Text>
-      <Card padded={false}>
-        <View style={{ paddingHorizontal: theme.spacing.lg }}>
-          {SAMPLE_ROWS.map((row, index) => (
-            <ListItem
-              key={row.id}
-              title={row.title}
-              subtitle={row.subtitle}
-              leading={<CategoryIcon category={row.category} />}
-              trailing={<AmountText amountPaise={row.paise} size="small" colorBySign />}
-              showDivider={index < SAMPLE_ROWS.length - 1}
-              onPress={() => {}}
-            />
-          ))}
-        </View>
-      </Card>
       <SyncStatusSheet
         visible={syncSheetOpen}
         onClose={() => setSyncSheetOpen(false)}
@@ -137,10 +151,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
   headerActions: {
     alignItems: 'center',
     flexDirection: 'row',

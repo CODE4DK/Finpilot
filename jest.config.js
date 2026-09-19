@@ -37,6 +37,7 @@ module.exports = {
         'react-native-reanimated',
         '@powersync/.*',
         '@op-engineering/.*',
+        'uuid',
       ].join('|') +
       '))',
   ],

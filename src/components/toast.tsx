@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme';
@@ -8,16 +8,27 @@ import { createId } from '@/utils/id';
 
 export type ToastTone = 'success' | 'error' | 'warning' | 'info';
 
+export interface ToastAction {
+  label: string;
+  onPress: () => void;
+}
+
 export interface Toast {
   id: string;
   message: string;
   tone: ToastTone;
+  action?: ToastAction;
 }
 
 export interface ShowToastOptions {
   tone?: ToastTone;
   /** Milliseconds before auto-dismiss. */
   duration?: number;
+  /**
+   * A single action, shown as a button in the toast. Used for Undo after a
+   * delete - tapping it dismisses the toast as well as running the handler.
+   */
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
@@ -39,9 +50,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback(
     (message: string, options: ShowToastOptions = {}) => {
-      const { tone = 'info', duration = DEFAULT_TOAST_DURATION } = options;
+      const { tone = 'info', duration = DEFAULT_TOAST_DURATION, action } = options;
       const id = createId();
-      setToasts((current) => [...current, { id, message, tone }]);
+      setToasts((current) => [...current, { id, message, tone, action }]);
       if (duration > 0) {
         setTimeout(() => dismiss(id), duration);
       }
@@ -79,7 +90,7 @@ const TONE_ICONS: Record<ToastTone, keyof typeof Ionicons.glyphMap> = {
 export function ToastViewport() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { toasts } = useToast();
+  const { toasts, dismiss } = useToast();
 
   if (toasts.length === 0) {
     return null;
@@ -123,6 +134,29 @@ export function ToastViewport() {
           >
             {toast.message}
           </Text>
+          {toast.action ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={toast.action.label}
+              hitSlop={12}
+              onPress={() => {
+                toast.action?.onPress();
+                dismiss(toast.id);
+              }}
+              testID={`toast-action-${toast.action.label.toLowerCase()}`}
+              style={styles.action}
+            >
+              <Text
+                style={[
+                  theme.typography.label,
+                  styles.actionLabel,
+                  { color: theme.colors.onSemantic },
+                ]}
+              >
+                {toast.action.label}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ))}
     </View>
@@ -130,6 +164,15 @@ export function ToastViewport() {
 }
 
 const styles = StyleSheet.create({
+  action: {
+    justifyContent: 'center',
+    minHeight: 32,
+    paddingHorizontal: 4,
+  },
+  actionLabel: {
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
   message: {
     flex: 1,
   },

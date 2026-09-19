@@ -4,7 +4,7 @@ Offline-first personal finance for Android and iOS. Built for Indian users —
 INR by default, amounts stored as integer paise, and every screen usable with
 no network.
 
-> **Status:** Phase 4 — offline-first sync with PowerSync.
+> **Status:** Phase 5 — accounts, transactions and recurring entries.
 
 ## Stack
 
@@ -69,20 +69,21 @@ npm run ios       # expo run:ios (macOS only)
 
 ## Scripts
 
-| Script                 | What it does                      |
-| ---------------------- | --------------------------------- |
-| `npm start`            | Metro bundler for the dev client  |
-| `npm run android`      | Build + run the Android dev build |
-| `npm run ios`          | Build + run the iOS dev build     |
-| `npm run lint`         | ESLint                            |
-| `npm run lint:fix`     | ESLint with `--fix`               |
-| `npm run typecheck`    | `tsc --noEmit`                    |
-| `npm test`             | Jest                              |
-| `npm run test:watch`   | Jest in watch mode                |
-| `npm run format`       | Prettier `--write`                |
-| `npm run format:check` | Prettier `--check`                |
-| `npm run db:test`      | pgTAP suite for the SQL schema    |
-| `npm run db:types`     | Regenerate the database types     |
+| Script                   | What it does                      |
+| ------------------------ | --------------------------------- |
+| `npm start`              | Metro bundler for the dev client  |
+| `npm run android`        | Build + run the Android dev build |
+| `npm run ios`            | Build + run the iOS dev build     |
+| `npm run lint`           | ESLint                            |
+| `npm run lint:fix`       | ESLint with `--fix`               |
+| `npm run typecheck`      | `tsc --noEmit`                    |
+| `npm test`               | Jest                              |
+| `npm run test:watch`     | Jest in watch mode                |
+| `npm run format`         | Prettier `--write`                |
+| `npm run format:check`   | Prettier `--check`                |
+| `npm run test:timezones` | The period suite under four zones |
+| `npm run db:test`        | pgTAP suite for the SQL schema    |
+| `npm run db:types`       | Regenerate the database types     |
 
 ## Project structure
 

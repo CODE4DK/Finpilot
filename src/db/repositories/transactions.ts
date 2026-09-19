@@ -159,6 +159,83 @@ export class TransactionsRepository extends BaseRepository<TransactionRow, Trans
     return this.db.getAll(sql, parameters);
   }
 
+  /**
+   * The categories this user reached for most recently. Feeds the Add screen's
+   * grid, where the ordering is the difference between two taps and three.
+   */
+  recentCategoriesQuery(limit = 6): { sql: string; parameters: unknown[] } {
+    return {
+      sql: `
+        SELECT category_id, MAX(occurred_at) AS last_used_at, COUNT(*) AS uses
+        FROM transactions
+        ${this.liveWhere('category_id IS NOT NULL')}
+        GROUP BY category_id
+        ORDER BY last_used_at DESC
+        LIMIT ?
+      `,
+      parameters: [this.userId, limit],
+    };
+  }
+
+  async recentCategories(
+    limit = 6,
+  ): Promise<{ category_id: string | null; last_used_at: string; uses: number }[]> {
+    const { sql, parameters } = this.recentCategoriesQuery(limit);
+    return this.db.getAll(sql, parameters);
+  }
+
+  /** The account the user last saved against - the Add screen's default. */
+  async lastUsedAccountId(): Promise<string | null> {
+    const row = await this.db.getOptional<{ account_id: string }>(
+      `SELECT account_id FROM transactions ${this.liveWhere()} ORDER BY created_at DESC LIMIT 1`,
+      [this.userId],
+    );
+    return row?.account_id ?? null;
+  }
+
+  /**
+   * Re-creates a deleted transaction with its original id, for Undo. A fresh
+   * `updated_at` is what makes the resurrection win the last-write-wins
+   * comparison against the delete that is already on its way to the server.
+   */
+  async restore(row: TransactionRow): Promise<void> {
+    await this.insert({
+      id: row.id,
+      type: row.type as TransactionInsert['type'],
+      amount_paise: row.amount_paise,
+      account_id: row.account_id,
+      to_account_id: row.to_account_id,
+      category_id: row.category_id,
+      note: row.note,
+      occurred_at: row.occurred_at,
+      recurring_rule_id: row.recurring_rule_id,
+    });
+  }
+
+  /**
+   * Writes a generated occurrence, ignoring it if this device already has it.
+   * The id is deterministic (see src/features/recurring/generate.ts), so this
+   * is what makes catch-up idempotent.
+   */
+  async insertGenerated(values: TransactionInsert & { id: string }): Promise<void> {
+    const timestamp = new Date(this.now()).toISOString();
+    const { id, ...rest } = values;
+    const columns = [
+      'id',
+      'user_id',
+      'created_at',
+      'updated_at',
+      'deleted_at',
+      ...Object.keys(rest),
+    ];
+    const placeholders = columns.map(() => '?').join(', ');
+
+    await this.db.execute(
+      `INSERT OR IGNORE INTO transactions (${columns.join(', ')}) VALUES (${placeholders})`,
+      [id, this.userId, timestamp, timestamp, null, ...Object.values(rest)],
+    );
+  }
+
   override async insert(values: TransactionInsert & { id?: string }): Promise<string> {
     // occurred_at defaults to now, so the caller only sets it for a backdated
     // entry.
