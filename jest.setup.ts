@@ -209,7 +209,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('expo-application', () => ({
   nativeBuildVersion: '42',
   nativeApplicationVersion: '1.0.0',
-  applicationId: 'com.finpilot.app',
+  applicationId: 'com.code4dk.finpilot',
 }));
 
 jest.mock('expo-sharing', () => ({

@@ -13,9 +13,13 @@ Google and Apple can wait.
 ## 0. What you need first
 
 - A Supabase project (Phase 2's migrations applied: `npx supabase db push`).
-- The app's bundle identifier / package name, both `com.finpilot.app`
-  (`app.json` → `expo.ios.bundleIdentifier` and `expo.android.package`).
-- The app scheme, `finpilot` (`app.json` → `expo.scheme`).
+- The app's bundle identifier / package name (`app.config.ts` → `VARIANTS`).
+  It is per variant: `com.code4dk.finpilot`, plus `.dev` and `.preview`.
+- The app scheme. It is **per variant**, because development, preview and
+  production install side by side: `finpilot-dev`, `finpilot-preview` and
+  `finpilot` (`app.config.ts` → `VARIANTS`). Register a redirect URI for each
+  one you intend to sign in from, or OAuth works in production and silently
+  fails in the build your testers have.
 - Your Supabase project ref — the `xxxx` in `https://xxxx.supabase.co`.
 
 Fill these into `.env` as you go (copy from `.env.example`).
@@ -133,7 +137,7 @@ Copy the **Client ID** and **Client secret**.
 **Create credentials → OAuth client ID**
 
 - Application type: **iOS**
-- Bundle ID: `com.finpilot.app`
+- Bundle ID: `com.code4dk.finpilot`
 
 Copy the Client ID. There is no secret for iOS clients.
 
@@ -142,7 +146,7 @@ Copy the Client ID. There is no secret for iOS clients.
 **Create credentials → OAuth client ID**
 
 - Application type: **Android**
-- Package name: `com.finpilot.app`
+- Package name: `com.code4dk.finpilot`
 - SHA-1 certificate fingerprint — get it from the credentials EAS uses:
 
   ```bash
@@ -197,7 +201,7 @@ this is not optional once Google is shipped on iOS.
 <https://developer.apple.com/account> → **Certificates, Identifiers & Profiles
 → Identifiers**
 
-1. Register an **App ID** (or edit yours) with bundle ID `com.finpilot.app`.
+1. Register an **App ID** (or edit yours) with bundle ID `com.code4dk.finpilot`.
 2. Tick the **Sign in with Apple** capability. Save.
 
 ### 4b. Services ID
@@ -205,16 +209,16 @@ this is not optional once Google is shipped on iOS.
 Supabase needs a Services ID as the OAuth audience.
 
 1. **Identifiers → + → Services IDs**
-2. Description `FinPilot Auth`, identifier `com.finpilot.app.auth`.
+2. Description `FinPilot Auth`, identifier `com.code4dk.finpilot.auth`.
 3. Enable **Sign in with Apple** → **Configure**:
-   - Primary App ID: `com.finpilot.app`
+   - Primary App ID: `com.code4dk.finpilot`
    - Domains: `<your-project-ref>.supabase.co`
    - Return URLs: `https://<your-project-ref>.supabase.co/auth/v1/callback`
 
 ### 4c. Key
 
 1. **Keys → + →** name it `FinPilot Sign in with Apple`.
-2. Tick **Sign in with Apple**, Configure → primary App ID `com.finpilot.app`.
+2. Tick **Sign in with Apple**, Configure → primary App ID `com.code4dk.finpilot`.
 3. Register, then **download the `.p8` file** — Apple lets you download it
    exactly once. Note the **Key ID** and your **Team ID** (top right of the
    developer portal).
@@ -223,19 +227,19 @@ Supabase needs a Services ID as the OAuth audience.
 
 Dashboard → **Authentication → Sign In / Providers → Apple** → enable.
 
-| Field                  | Value                                              |
-| ---------------------- | -------------------------------------------------- |
-| Client IDs             | `com.finpilot.app` **and** `com.finpilot.app.auth` |
-| Secret Key (for OAuth) | contents of the `.p8` file                         |
-| Team ID                | your 10-character Team ID                          |
-| Key ID                 | the Key ID from 4c                                 |
+| Field                  | Value                                                      |
+| ---------------------- | ---------------------------------------------------------- |
+| Client IDs             | `com.code4dk.finpilot` **and** `com.code4dk.finpilot.auth` |
+| Secret Key (for OAuth) | contents of the `.p8` file                                 |
+| Team ID                | your 10-character Team ID                                  |
+| Key ID                 | the Key ID from 4c                                         |
 
 The native sheet returns an id_token whose audience is the **bundle ID**, so
-`com.finpilot.app` must be in the Client IDs list — not only the Services ID.
+`com.code4dk.finpilot` must be in the Client IDs list — not only the Services ID.
 
 ### 4e. App config
 
-Already set in `app.json`: `expo.ios.usesAppleSignIn: true` and the
+Already set in `app.config.ts`: `ios.usesAppleSignIn: true` and the
 `expo-apple-authentication` plugin. A new development build is required after
 this change.
 

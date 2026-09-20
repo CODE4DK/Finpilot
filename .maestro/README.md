@@ -13,6 +13,10 @@ maestro test .maestro/03-add-expense.yaml # one flow
 maestro test --include-tags smoke .maestro/
 ```
 
+The flows target the **development** variant (`com.code4dk.finpilot.dev`), so
+they never touch a production install. Change `appId` at the top of each flow
+to run them against preview or production.
+
 ## Before you run them
 
 1. **A development build**, not Expo Go — FinPilot uses native modules.

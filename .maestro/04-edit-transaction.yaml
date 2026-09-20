@@ -1,5 +1,5 @@
 # Editing: the amount and the category both change, and the totals follow.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---

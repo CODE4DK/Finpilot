@@ -3,6 +3,8 @@ import { create } from 'zustand';
 
 import type { Profile } from './api';
 
+import { identifyUser } from '@/lib/monitoring';
+
 export type AuthStatus = 'initialising' | 'signedOut' | 'signedIn';
 
 export interface AuthState {
@@ -38,14 +40,19 @@ const INITIAL_STATE = {
 export const useAuthStore = create<AuthState>((set) => ({
   ...INITIAL_STATE,
 
-  setSession: (session) =>
+  setSession: (session) => {
+    // Reports are tied to the user by id alone - enough to count who is
+    // affected, and not their identity. See src/lib/monitoring.ts.
+    identifyUser(session?.user.id ?? null);
+
     set((state) => ({
       session,
       user: session?.user ?? null,
       status: session ? 'signedIn' : 'signedOut',
       // A different user - or none - must never inherit the previous profile.
       profile: session && state.profile?.id === session.user.id ? state.profile : null,
-    })),
+    }));
+  },
 
   setProfile: (profile) => set({ profile }),
   setBusy: (busy) => set({ busy }),
@@ -56,7 +63,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       state.profile ? { profile: { ...state.profile, onboarding_completed: true } } : {},
     ),
 
-  reset: () => set({ ...INITIAL_STATE, status: 'signedOut' }),
+  reset: () => {
+    identifyUser(null);
+    set({ ...INITIAL_STATE, status: 'signedOut' });
+  },
 }));
 
 /* Selectors - keep components from re-rendering on unrelated changes. */

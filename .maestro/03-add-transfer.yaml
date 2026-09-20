@@ -1,6 +1,6 @@
 # A transfer moves money between your own accounts. It must net to zero and
 # appear in neither income nor expense - the rule the whole ledger rests on.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---

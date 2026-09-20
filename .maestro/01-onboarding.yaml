@@ -1,6 +1,6 @@
 # First run: a person who has never opened FinPilot ends up on the Home tab
 # with one account and a profile.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - smoke
 env:

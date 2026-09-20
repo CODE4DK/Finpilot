@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -7,7 +8,16 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '@/components';
 import { AuthGate } from '@/features/auth/auth-gate';
 import { selectThemePreference, useSettingsStore } from '@/stores/settings-store';
+import { initMonitoring } from '@/lib/monitoring';
 import { ThemeProvider, useTheme } from '@/theme';
+
+/**
+ * Crash reporting starts before the first component renders, so a crash
+ * during startup - the one a user cannot work around by trying again - is
+ * still reported. It is a no-op in development and in any build without a
+ * DSN; see src/lib/monitoring.ts.
+ */
+initMonitoring();
 
 function RootStack() {
   const theme = useTheme();
@@ -42,7 +52,7 @@ function RootStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const themePreference = useSettingsStore(selectThemePreference);
   const hydratePreferences = useSettingsStore((state) => state.hydrate);
 
@@ -66,3 +76,10 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+/**
+ * `Sentry.wrap` adds the error boundary and the navigation instrumentation.
+ * It hands back the same component when reporting is off, so a development
+ * build is unaffected.
+ */
+export default Sentry.wrap(RootLayout);

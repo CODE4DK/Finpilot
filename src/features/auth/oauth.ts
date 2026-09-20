@@ -1,5 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as AuthSession from 'expo-auth-session';
+import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
@@ -30,6 +31,26 @@ export class ProviderUnavailableError extends Error {
     super(`${provider} sign-in is not available on this device.`);
     this.name = 'ProviderUnavailableError';
   }
+}
+
+/**
+ * The deep-link scheme this build registered.
+ *
+ * It is **not** a constant: development, preview and production install side
+ * by side, so each has its own scheme (`finpilot-dev`, `finpilot-preview`,
+ * `finpilot`). Hardcoding one would send the provider's redirect to whichever
+ * variant happened to claim it - or to nothing at all.
+ *
+ * Every scheme a build can use has to be registered as a redirect URI with
+ * the provider; see docs/AUTH_SETUP.md.
+ */
+export function appScheme(
+  scheme: string | string[] | null | undefined = Constants.expoConfig?.scheme,
+): string {
+  if (Array.isArray(scheme)) {
+    return scheme[0] ?? 'finpilot';
+  }
+  return scheme ?? 'finpilot';
 }
 
 /** Apple requires the nonce hashed on the way out, raw on the way back. */
@@ -63,7 +84,7 @@ export async function signInWithGoogle(
   }
 
   const discovery = await AuthSession.fetchDiscoveryAsync('https://accounts.google.com');
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: 'finpilot', path: 'auth/callback' });
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: appScheme(), path: 'auth/callback' });
   const { raw, hashed } = await createNonce();
 
   const request = new AuthSession.AuthRequest({

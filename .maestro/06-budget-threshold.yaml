@@ -1,6 +1,6 @@
 # A budget, then enough spending to cross 80% of it. The bar turns amber and
 # the screen says the percentage out loud - colour is never the only signal.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---

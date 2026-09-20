@@ -1,6 +1,6 @@
 # Swipe to delete, then Undo. The row comes back with its original id, so the
 # restore reaches the user's other devices too rather than creating a twin.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---

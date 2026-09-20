@@ -71,6 +71,13 @@ npm run test:watch   # Jest in watch mode
 npm run test:timezones # the period suite under four timezones
 npm run format       # Prettier --write
 npm run format:check # Prettier --check
+npm run test:coverage # Jest with the 80% floor enforced
+
+npm run build:dev        # EAS development build (both platforms)
+npm run build:preview    # EAS preview build - internal APK / TestFlight
+npm run build:production # EAS production build
+npm run update:preview   # OTA JavaScript update to the preview channel
+npm run update:production # OTA JavaScript update to the production channel
 
 npm run db:start     # supabase start (local stack, needs Docker)
 npm run db:reset     # re-apply every migration
@@ -108,7 +115,15 @@ npm run db:types     # regenerate src/db/database.types.ts
 - **Business logic lives in `src/features/*`;** screen files under `app/` stay
   thin and only compose components and feature hooks.
 - **No secrets in the app bundle.** Only `EXPO_PUBLIC_*` variables reach the
-  client. Anything privileged belongs in a Supabase Edge Function.
+  client. Anything privileged belongs in a Supabase Edge Function. Build-time
+  secrets (`SENTRY_AUTH_TOKEN`) live in EAS, never in git.
+- **The app's identity is per variant** (`app.config.ts`): development,
+  preview and production have different bundle ids, names and deep-link
+  schemes so all three install side by side. Anything that reads the scheme
+  reads it from the config, never from a constant.
+- **Crash reports carry no financial data.** `src/lib/monitoring.ts` scrubs
+  every event before it is sent; the user is a bare UUID. See
+  [docs/RELEASE.md](./docs/RELEASE.md).
 - **Balance and aggregation logic lives in `src/features/ledger/*`,** never in
   a screen or a component: account balances, net worth, period totals and day
   grouping are pure functions with unit tests. A transfer moves money between

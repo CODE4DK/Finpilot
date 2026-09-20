@@ -1,6 +1,6 @@
 # The Reports tab: the period selector, both charts, and the drill-down from a
 # category into the transactions behind it.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---

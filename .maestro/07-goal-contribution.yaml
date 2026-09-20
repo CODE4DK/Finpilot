@@ -1,5 +1,5 @@
 # A savings goal and a contribution against it.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---

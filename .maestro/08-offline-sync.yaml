@@ -4,7 +4,7 @@
 # The radio is toggled through adb, so this flow as written is Android-only.
 # On iOS, run it by hand - see .maestro/README.md. It is worth doing on both
 # before a release: offline is not an edge case here, it is the design.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - smoke
 ---

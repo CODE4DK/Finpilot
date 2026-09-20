@@ -1,0 +1,79 @@
+# An over-the-air JavaScript patch.
+#
+# Deliberately manual. An OTA update reaches every installed build on a
+# channel within minutes and skips store review entirely - which is exactly
+# why it is not wired to a push. Someone decides to do this, with a reason,
+# and that reason goes in the message.
+#
+# What an OTA can fix: JavaScript. A wrong label, a bad calculation, a crash
+# in a screen. What it cannot: anything native. The runtime version policy is
+# `appVersion`, so a build only accepts an update compiled against the same
+# marketing version - see app.config.ts.
+name: OTA update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Which channel to publish to
+        type: choice
+        options: [preview, production]
+        default: preview
+      message:
+        description: Why this update is going out
+        type: string
+        required: true
+
+concurrency:
+  group: ota-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify before publishing
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      EXPO_PUBLIC_POWERSYNC_URL: https://ci.example.powersync.journeyapps.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The same gate as a store release. An update that goes out in minutes
+      # deserves more care than one that waits a week for review, not less.
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:coverage
+
+  publish:
+    name: Publish the update
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+
+      - name: Publish
+        env:
+          APP_VARIANT: ${{ inputs.channel == 'production' && 'production' || 'preview' }}
+          EXPO_PUBLIC_ENVIRONMENT: ${{ inputs.channel == 'production' && 'production' || 'staging' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          eas update \
+            --channel ${{ inputs.channel }} \
+            --message "${{ inputs.message }}" \
+            --non-interactive

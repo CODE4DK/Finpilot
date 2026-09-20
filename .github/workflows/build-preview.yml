@@ -1,0 +1,67 @@
+# Push to main -> a preview build for internal testers.
+#
+# It waits on CI: a build of a commit that does not pass the suite is a build
+# nobody should install. The build itself runs on EAS, so this job is a few
+# seconds of glue and then a wait.
+name: Preview build
+
+on:
+  push:
+    branches: [main]
+  # For re-cutting a build without an empty commit.
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which platform to build
+        type: choice
+        options: [all, android, ios]
+        default: all
+
+concurrency:
+  group: preview-build
+  cancel-in-progress: false
+
+jobs:
+  wait-for-ci:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          running-workflow-name: Wait for CI
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 20
+          allowed-conclusions: success
+
+  build:
+    name: EAS preview build
+    needs: wait-for-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+
+      # Non-interactive and detached: the workflow's job is to start the
+      # build and record that it started, not to hold a runner for twenty
+      # minutes waiting on a queue.
+      - name: Build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          eas build \
+            --profile preview \
+            --platform ${{ inputs.platform || 'all' }} \
+            --non-interactive \
+            --no-wait \
+            --message "main@${GITHUB_SHA::7} - ${{ github.event.head_commit.message || 'manual' }}"

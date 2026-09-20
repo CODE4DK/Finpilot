@@ -1,9 +1,11 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants from 'expo-constants';
 import * as AuthSession from 'expo-auth-session';
 import { Platform } from 'react-native';
 
 import {
   OAuthCancelledError,
+  appScheme,
   ProviderUnavailableError,
   googleClientId,
   isAppleSignInAvailable,
@@ -165,5 +167,26 @@ describe('Apple sign-in', () => {
     (AppleAuthentication.signInAsync as jest.Mock).mockResolvedValue({ identityToken: null });
 
     await expect(signInWithApple()).rejects.toThrow(/identity token/i);
+  });
+});
+
+describe('the redirect scheme', () => {
+  it('comes from the build, not from a constant', () => {
+    // Development, preview and production install side by side with different
+    // schemes; a hardcoded one would send the provider's redirect to whichever
+    // variant claimed it.
+    expect(appScheme()).toBe(Constants.expoConfig?.scheme ?? 'finpilot');
+  });
+
+  it.each([
+    [undefined, 'finpilot'],
+    [null, 'finpilot'],
+    ['finpilot-dev', 'finpilot-dev'],
+    // A build may register more than one; the first is the canonical one.
+    [['finpilot-preview', 'finpilot'], 'finpilot-preview'],
+  ])('resolves %p to %p', (scheme, expected) => {
+    // Injected rather than spied: `Constants.expoConfig` is a
+    // non-configurable getter, and the default argument is the seam.
+    expect(appScheme(scheme as string | string[] | null | undefined)).toBe(expected);
   });
 });

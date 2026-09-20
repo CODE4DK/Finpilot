@@ -1,0 +1,116 @@
+# Every pull request, and every push to main.
+#
+# This is the gate: nothing merges that does not lint, typecheck, pass the
+# suite with coverage above the floor, and pass the SQL suite. The jobs run in
+# parallel because a failure is most useful when it arrives with all of its
+# siblings, not one at a time over twelve minutes.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # A new push supersedes the run in flight for the same ref.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The env the app reads at build time. These are public identifiers, not
+  # secrets - see src/lib/env.ts - but CI needs them to be *present*, because
+  # readEnv throws when they are not.
+  EXPO_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+  EXPO_PUBLIC_POWERSYNC_URL: https://ci.example.powersync.journeyapps.com
+
+jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    name: Tests and coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails below 80% for src/features and src/utils - the threshold is in
+      # jest.config.js, so the gate lives with the code rather than here.
+      - run: npm run test:coverage
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  timezones:
+    name: Timezone suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Day grouping uses the device's local zone, so the period suite runs
+      # under four of them - including Chatham, which is 45 minutes off the
+      # hour and has DST.
+      - run: npm run test:timezones
+
+  database:
+    name: SQL schema and RLS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client postgresql-16-pgtap
+      - name: Apply migrations and run the suite
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PSQL_SUPERUSER: postgres
+        run: npm run db:test

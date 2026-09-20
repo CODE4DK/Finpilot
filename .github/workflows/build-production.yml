@@ -1,0 +1,115 @@
+# A v* tag -> a production build, and the store submission that follows it.
+#
+# The tag is the release. Nothing here decides what goes out: that was decided
+# when someone tagged a commit that had already been through CI and a preview
+# build. See docs/RELEASE.md.
+name: Production build
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: production-build
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify the tagged commit
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://ci.example.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      EXPO_PUBLIC_POWERSYNC_URL: https://ci.example.powersync.journeyapps.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The tag may point at a commit CI never saw - a tag can be moved. Run
+      # the gate again rather than assuming.
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:coverage
+
+      # A tag that says 1.2.0 while the app says 1.1.0 ships a build whose
+      # store listing, Sentry releases and update channel all disagree about
+      # which version it is. Catch it here rather than in a support thread.
+      - name: Check the tag matches the app version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          APP_VERSION=$(node -p "require('./scripts/read-app-version.cjs')()")
+          if [ "$TAG" != "$APP_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match version $APP_VERSION in app.config.ts"
+            exit 1
+          fi
+          echo "Tag and app version agree on $APP_VERSION"
+
+      - name: Check the changelog has an entry for this version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          if ! grep -qE "^## \[(Phase [0-9]+|v?$TAG)\]" docs/CHANGELOG.md; then
+            echo "::error::docs/CHANGELOG.md has no entry for $TAG"
+            exit 1
+          fi
+
+  build:
+    name: EAS production build
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+
+      # This one waits: the submit step below needs the artefact, and a
+      # release that half-happened is worse than one that took longer.
+      - name: Build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        run: |
+          eas build \
+            --profile production \
+            --platform all \
+            --non-interactive \
+            --message "${GITHUB_REF_NAME}"
+
+      # Both stores receive a **draft**: a human still presses the button.
+      # An automated release to production is one bad tag away from a public
+      # incident, and a finance app's users notice.
+      - name: Submit to the stores as a draft
+        run: |
+          eas submit --profile production --platform all --non-interactive --latest
+
+  release-notes:
+    name: Draft the GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create a draft release from the changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # The section for this version, from the top of the changelog to the
+          # next heading.
+          awk '/^## \[/{ if (found) exit; found=1 } found' docs/CHANGELOG.md > notes.md
+          gh release create "${GITHUB_REF_NAME}" \
+            --draft \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file notes.md

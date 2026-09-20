@@ -1,5 +1,5 @@
 # The core interaction: an expense in three taps once the amount is typed.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - smoke
 ---

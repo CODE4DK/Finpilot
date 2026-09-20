@@ -28,8 +28,12 @@ module.exports = defineConfig([
     },
   },
   {
-    // Node CLI scripts talk to the developer through stdout.
+    // Node CLI scripts talk to the developer through stdout, and run in
+    // CommonJS where __dirname and module exist.
     files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: { __dirname: 'readonly', module: 'writable', require: 'readonly' },
+    },
     rules: {
       'no-console': 'off',
     },

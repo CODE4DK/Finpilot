@@ -3,6 +3,72 @@
 All notable changes to FinPilot are recorded here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Phase 11] - 2026-09-20 - CI/CD, environments and monitoring
+
+### Added
+
+- **`app.config.ts` in place of `app.json`.** Development, preview and
+  production now have their own bundle id, name and deep-link scheme, so all
+  three install side by side on one device - which is what makes "does this
+  reproduce on the preview build?" answerable in a minute. A static file
+  cannot express that, which is why the config is now TypeScript.
+- **Three EAS profiles** bound to three EAS environments: development
+  (dev-client APK), preview (internal APK / TestFlight, **staging** Supabase)
+  and production (app bundle, **production** Supabase). Build numbers
+  increment remotely, so nothing in git has to be bumped to cut a build.
+- **GitHub Actions**: a pull request runs lint, format, typecheck, the suite
+  with the coverage floor, the timezone suite and the pgTAP suite against a
+  real Postgres; a push to `main` waits for CI and starts a preview build; a
+  `v*` tag re-runs the gate, builds production and submits a **draft** to
+  both stores. Nothing releases itself - the tag is the decision, and a human
+  presses publish.
+- **EAS Update channels** with a `runtimeVersion` policy of `appVersion`: an
+  over-the-air patch only reaches builds compiled against the same marketing
+  version, so a JavaScript fix can go out in minutes while a native change
+  still means a store release. Publishing is a manual workflow with a
+  required reason, because an OTA skips review entirely.
+- **Sentry** (`src/lib/monitoring.ts`), on for preview and production only.
+  Every event is scrubbed before it is sent: amounts, balances, limits,
+  notes, category and account names, emails, phone numbers and tokens are
+  removed by key, and every string goes through the same redactor the local
+  logger uses. The user is a bare UUID; screenshots and view hierarchies are
+  off, because in this app a screenshot **is** the data. Reports are tagged
+  with the environment, the update channel and the release, so "is this the
+  build or the OTA?" is answerable from the issue page.
+- **Splash screen and the app identity**: adaptive icon, monochrome icon, and
+  a splash that uses the theme's own light and dark surfaces rather than
+  flashing white before the app paints.
+- **[docs/RELEASE.md](./RELEASE.md)**: the runbook - environments, cutting a
+  release, what an OTA can and cannot fix, rolling one back, what to watch in
+  Sentry for the first hour, and the pipeline's own failure modes.
+
+### Fixed
+
+- **Per-variant schemes would have broken Google sign-in on every build but
+  production.** The OAuth redirect URI was built from a hardcoded `finpilot`
+  scheme; with development on `finpilot-dev` and preview on
+  `finpilot-preview`, the provider's redirect would have gone to whichever
+  variant claimed the scheme, or to nothing at all. It now reads the scheme
+  the build actually registered. Caught while making the variants installable
+  side by side, and covered by a test.
+
+### Changed
+
+- The bundle id is now `com.code4dk.finpilot` rather than `com.finpilot.app`.
+  **It cannot change after the first store submission**, so it is worth a
+  deliberate decision now rather than a discovery later; the Maestro flows and
+  the auth setup document were updated with it.
+
+### Notes
+
+- Staging and production are **separate Supabase projects**. A tester's entry
+  must never reach a real ledger, and a migration has to be survivable before
+  it is irreversible.
+- The runtime version policy has a consequence worth knowing: bumping
+  `version` in `app.config.ts` mid-cycle strands every installed build on an
+  old runtime version and silently cuts them off from OTA patches. Bump it
+  only when cutting a store release.
+
 ## [Phase 10] - 2026-09-19 - Test suite and QA
 
 ### Added

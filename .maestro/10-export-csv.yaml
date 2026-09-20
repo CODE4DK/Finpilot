@@ -3,7 +3,7 @@
 # What the file contains is covered by unit tests - the escaping, the BOM, the
 # formula neutralising. What only a device can tell you is whether the sheet
 # opens at all.
-appId: com.finpilot.app
+appId: com.code4dk.finpilot.dev
 tags:
   - regression
 ---
